@@ -34,22 +34,13 @@ export default function UnlockForm({ onUnlock }: UnlockFormProps) {
     setIsLoading(true);
     // Simulate ZKP verification and vault decryption
     setTimeout(() => {
-      if (values.masterPassword === 'password123') {
-        setIsLoading(false);
-        onUnlock();
-        toast({
-          title: "Vault Unlocked",
-          description: "Welcome back!",
-        });
-      } else {
-        setIsLoading(false);
-        toast({
-            variant: "destructive",
-            title: "Unlock Failed",
-            description: "Invalid master password.",
-        });
-        form.setError("masterPassword", { message: " " });
-      }
+      // TEMPORARY: Remove hardcoded check to allow flow testing
+      setIsLoading(false);
+      onUnlock();
+      toast({
+        title: "Vault Unlocked",
+        description: "Welcome back!",
+      });
     }, 1500);
   };
 
@@ -60,7 +51,7 @@ export default function UnlockForm({ onUnlock }: UnlockFormProps) {
           <KeyRound className="h-6 w-6 text-primary" />
           Unlock Your Vault
         </CardTitle>
-        <CardDescription>Enter your master password to decrypt your data. (Hint: use 'password123')</CardDescription>
+        <CardDescription>Enter your master password to decrypt your data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
