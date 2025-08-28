@@ -44,7 +44,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
     setSavingStep("Initiating...");
     
     try {
-        const {stream} = await addCredential({
+        const stream = await addCredential({
             masterPassword, // In a real app, this should not be passed directly
             service: values.service,
             username: values.username,

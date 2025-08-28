@@ -43,7 +43,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-      const { stream } = await revealCredential({
+      const stream = await revealCredential({
         masterPassword,
         encryptedPassword: credential.encryptedPassword
       });

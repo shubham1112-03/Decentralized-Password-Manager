@@ -61,7 +61,7 @@ const addCredentialFlow = ai.defineFlow(
 
 export async function addCredential(input: AddCredentialInput) {
     const {stream} = await addCredentialFlow(input);
-    return {stream};
+    return stream;
 }
 
 
@@ -107,5 +107,5 @@ const revealCredentialFlow = ai.defineFlow(
 
 export async function revealCredential(input: RevealCredentialInput) {
     const {stream} = await revealCredentialFlow(input);
-    return {stream};
+    return stream;
 }
