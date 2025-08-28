@@ -41,6 +41,7 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
+  const [masterPassword, setMasterPassword] = useState<string>("");
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -67,6 +68,8 @@ export default function Auth() {
         if (values.email.includes("new")) {
              setAuthState("createMasterPassword");
         } else {
+            // For existing users, we'll set a dummy password to check against.
+            setMasterPassword("password123");
             setAuthState("unlock");
         }
         toast({ title: "Logged In", description: "Welcome back!" });
@@ -86,6 +89,7 @@ export default function Auth() {
   const handleSetMasterPassword = (values: z.infer<typeof masterPasswordSchema>) => {
     setIsLoading(true);
     setTimeout(() => {
+        setMasterPassword(values.masterPassword);
         setAuthState("unlock");
         toast({ title: "Master Password Set!", description: "You can now unlock your vault." });
         setIsLoading(false);
@@ -101,7 +105,7 @@ export default function Auth() {
   }
   
   if (authState === "unlock") {
-    return <UnlockForm onUnlock={handleUnlock} />;
+    return <UnlockForm onUnlock={handleUnlock} masterPassword={masterPassword} />;
   }
 
   if (authState === "createMasterPassword") {

@@ -16,10 +16,11 @@ const formSchema = z.object({
 });
 
 type UnlockFormProps = {
+  masterPassword: string;
   onUnlock: () => void;
 };
 
-export default function UnlockForm({ onUnlock }: UnlockFormProps) {
+export default function UnlockForm({ masterPassword, onUnlock }: UnlockFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -34,7 +35,15 @@ export default function UnlockForm({ onUnlock }: UnlockFormProps) {
     setIsLoading(true);
     // Simulate ZKP verification and vault decryption
     setTimeout(() => {
-      // TEMPORARY: Remove hardcoded check to allow flow testing
+      if (values.masterPassword !== masterPassword) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Password",
+          description: "The master password you entered is incorrect.",
+        });
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(false);
       onUnlock();
       toast({
