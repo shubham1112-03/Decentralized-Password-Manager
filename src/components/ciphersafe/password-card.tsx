@@ -44,7 +44,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-      const stream = runFlow(revealCredential, {
+      const { stream } = runFlow(revealCredential, {
         masterPassword,
         encryptedPassword: credential.encryptedPassword
       });
