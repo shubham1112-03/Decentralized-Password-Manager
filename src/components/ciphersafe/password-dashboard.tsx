@@ -34,18 +34,18 @@ const initialCredentials: Credential[] = [
 
 type PasswordDashboardProps = {
   onLock: () => void;
+  masterPassword: string;
 };
 
-export default function PasswordDashboard({ onLock }: PasswordDashboardProps) {
+export default function PasswordDashboard({ onLock, masterPassword }: PasswordDashboardProps) {
   const [credentials, setCredentials] = useState<Credential[]>(initialCredentials);
   const { toast } = useToast();
 
-  const addCredential = (newCredential: Omit<Credential, "id">) => {
-    const credToAdd = { ...newCredential, id: crypto.randomUUID() };
-    setCredentials(prev => [...prev, credToAdd]);
+  const addCredential = (newCredential: Credential) => {
+    setCredentials(prev => [...prev, newCredential]);
     toast({
         title: "Success!",
-        description: `Credential for ${credToAdd.service} has been added to your vault.`,
+        description: `Credential for ${newCredential.service} has been added to your vault.`,
     });
   };
 
@@ -68,7 +68,7 @@ export default function PasswordDashboard({ onLock }: PasswordDashboardProps) {
   return (
     <div className="w-full">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <AddPasswordDialog onAddCredential={addCredential} />
+        <AddPasswordDialog onAddCredential={addCredential} masterPassword={masterPassword} />
         <Button variant="secondary" onClick={onLock}>
           <Lock className="mr-2 h-4 w-4" />
           Lock Vault
@@ -78,7 +78,7 @@ export default function PasswordDashboard({ onLock }: PasswordDashboardProps) {
       {credentials.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {credentials.map(cred => (
-            <PasswordCard key={cred.id} credential={cred} onDelete={deleteCredential} />
+            <PasswordCard key={cred.id} credential={cred} onDelete={deleteCredential} masterPassword={masterPassword} />
           ))}
         </div>
       ) : (

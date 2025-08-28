@@ -69,7 +69,8 @@ export default function Auth() {
              setAuthState("createMasterPassword");
         } else {
             // For existing users, we'll set a dummy password to check against.
-            setMasterPassword("password123");
+            // In a real app, you wouldn't store the master password in state like this.
+            setMasterPassword("password123"); 
             setAuthState("unlock");
         }
         toast({ title: "Logged In", description: "Welcome back!" });
@@ -101,7 +102,7 @@ export default function Auth() {
 
 
   if (authState === "dashboard") {
-    return <PasswordDashboard onLock={handleLock} />;
+    return <PasswordDashboard onLock={handleLock} masterPassword={masterPassword} />;
   }
   
   if (authState === "unlock") {

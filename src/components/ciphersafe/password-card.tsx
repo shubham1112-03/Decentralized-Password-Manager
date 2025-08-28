@@ -17,20 +17,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { revealCredential } from "@/ai/flows/credential-flow";
 
 type PasswordCardProps = {
   credential: Credential;
   onDelete: (id: string) => void;
+  masterPassword: string;
 };
 
-const revealSteps = [
-    "Verifying master key proof...",
-    "Fetching secret shares from IPFS...",
-    "Reconstructing secret...",
-    "Decrypting with AES-256...",
-];
-
-export default function PasswordCard({ credential, onDelete }: PasswordCardProps) {
+export default function PasswordCard({ credential, onDelete, masterPassword }: PasswordCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealStep, setRevealStep] = useState("");
@@ -45,15 +40,33 @@ export default function PasswordCard({ credential, onDelete }: PasswordCardProps
     if (isRevealing) return;
 
     setIsRevealing(true);
-    for (const step of revealSteps) {
-        setRevealStep(step);
-        await new Promise(resolve => setTimeout(resolve, 600));
+    setRevealStep("Initiating...");
+
+    try {
+      const {stream} = await revealCredential({
+        masterPassword, // In a real app, this should not be passed directly
+        encryptedPassword: credential.encryptedPassword,
+      });
+
+      for await (const step of stream) {
+        setRevealStep(step.step);
+      }
+      setIsRevealed(true);
+
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Error Revealing Credential",
+        description: "Something went wrong. Please try again."
+      });
+    } finally {
+      setIsRevealing(false);
     }
-    setIsRevealing(false);
-    setIsRevealed(true);
   };
 
   const handleCopy = () => {
+    // In a real app, the revealed password would come from the flow result
     navigator.clipboard.writeText(credential.plaintextPassword);
     toast({
       title: "Password Copied!",

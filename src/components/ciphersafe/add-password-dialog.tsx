@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { PlusCircle, Loader2 } from "lucide-react";
+import { addCredential } from "@/ai/flows/credential-flow";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -18,21 +20,15 @@ const formSchema = z.object({
 });
 
 type AddPasswordDialogProps = {
-  onAddCredential: (credential: Omit<Credential, "id" | "plaintextPassword"> & { plaintextPassword: string }) => void;
+  onAddCredential: (credential: Credential) => void;
+  masterPassword: string;
 };
 
-const steps = [
-    "Hashing master password with Argon2...",
-    "Encrypting password with AES-256...",
-    "Generating Shamir's secret shares...",
-    "Distributing shares to IPFS nodes...",
-    "Done!"
-]
-
-export default function AddPasswordDialog({ onAddCredential }: AddPasswordDialogProps) {
+export default function AddPasswordDialog({ onAddCredential, masterPassword }: AddPasswordDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingStep, setSavingStep] = useState("");
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,22 +41,42 @@ export default function AddPasswordDialog({ onAddCredential }: AddPasswordDialog
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
+    setSavingStep("Initiating...");
     
-    for (const step of steps) {
-        setSavingStep(step);
-        await new Promise(resolve => setTimeout(resolve, 700));
-    }
+    try {
+        const {stream} = await addCredential({
+            masterPassword, // In a real app, this should not be passed directly
+            service: values.service,
+            username: values.username,
+            password: values.password,
+        });
 
-    onAddCredential({
-      service: values.service,
-      username: values.username,
-      encryptedPassword: `encrypted_${values.password}_${Math.random()}`,
-      plaintextPassword: values.password,
-    });
-    
-    setIsSaving(false);
-    setIsOpen(false);
-    form.reset();
+        for await (const step of stream) {
+            setSavingStep(step.step);
+        }
+
+        const newCredential = {
+            id: crypto.randomUUID(),
+            service: values.service,
+            username: values.username,
+            encryptedPassword: `encrypted_${values.password}_${Math.random()}`,
+            plaintextPassword: values.password, // For simulation
+        };
+
+        onAddCredential(newCredential);
+        setIsOpen(false);
+
+    } catch (e) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Error Saving Credential",
+            description: "Something went wrong while saving your password. Please try again."
+        });
+    } finally {
+        setIsSaving(false);
+        form.reset();
+    }
   };
 
   return (
@@ -69,6 +85,7 @@ export default function AddPasswordDialog({ onAddCredential }: AddPasswordDialog
       if (!open) {
         form.reset();
         setIsSaving(false);
+        setSavingStep("");
       }
     }}>
       <DialogTrigger asChild>
