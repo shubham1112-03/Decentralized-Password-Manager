@@ -1,21 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import UnlockForm from "@/components/ciphersafe/unlock-form";
-import PasswordDashboard from "@/components/ciphersafe/password-dashboard";
+import Auth from "@/components/ciphersafe/auth";
 import { ShieldCheck } from "lucide-react";
 
 export default function Home() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  const handleUnlock = () => {
-    setIsUnlocked(true);
-  };
-
-  const handleLock = () => {
-    setIsUnlocked(false);
-  };
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-background">
       <div className="w-full max-w-4xl">
@@ -32,11 +21,7 @@ export default function Home() {
         </header>
 
         <div className="relative w-full">
-            {isUnlocked ? (
-              <PasswordDashboard onLock={handleLock} />
-            ) : (
-              <UnlockForm onUnlock={handleUnlock} />
-            )}
+            <Auth />
         </div>
       </div>
     </main>
