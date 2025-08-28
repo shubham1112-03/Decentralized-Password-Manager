@@ -26,8 +26,7 @@ const AddCredentialOutputSchema = z.object({
 });
 export type AddCredentialOutput = z.infer<typeof AddCredentialOutputSchema>;
 
-
-export const addCredential = ai.defineFlow(
+const addCredentialFlow = ai.defineFlow(
   {
     name: 'addCredentialFlow',
     inputSchema: AddCredentialInputSchema,
@@ -60,6 +59,11 @@ export const addCredential = ai.defineFlow(
   }
 );
 
+export async function addCredential(input: AddCredentialInput) {
+    const {stream} = await addCredentialFlow(input);
+    return {stream};
+}
+
 
 // == REVEAL CREDENTIAL FLOW ==
 
@@ -75,7 +79,7 @@ const RevealCredentialOutputSchema = z.object({
 });
 export type RevealCredentialOutput = z.infer<typeof RevealCredentialOutputSchema>;
 
-export const revealCredential = ai.defineFlow(
+const revealCredentialFlow = ai.defineFlow(
     {
         name: 'revealCredentialFlow',
         inputSchema: RevealCredentialInputSchema,
@@ -100,3 +104,8 @@ export const revealCredential = ai.defineFlow(
         yield { step: "Decrypting with AES-256..." };
     }
 );
+
+export async function revealCredential(input: RevealCredentialInput) {
+    const {stream} = await revealCredentialFlow(input);
+    return {stream};
+}
