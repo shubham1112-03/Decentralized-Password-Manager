@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { revealCredential } from "@/ai/flows/credential-flow";
+import { runFlow } from "@genkit-ai/next/client";
 
 type PasswordCardProps = {
   credential: Credential;
@@ -43,7 +44,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-      const stream = await revealCredential({
+      const {stream} = runFlow(revealCredential, {
         masterPassword,
         encryptedPassword: credential.encryptedPassword
       });

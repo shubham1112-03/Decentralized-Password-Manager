@@ -13,7 +13,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // == ADD CREDENTIAL FLOW ==
 
-const AddCredentialInputSchema = z.object({
+export const AddCredentialInputSchema = z.object({
   masterPassword: z.string().describe("The user's master password."),
   service: z.string().describe('The service name for the credential (e.g., GitHub).'),
   username: z.string().describe('The username for the service.'),
@@ -24,7 +24,6 @@ export type AddCredentialInput = z.infer<typeof AddCredentialInputSchema>;
 const AddCredentialOutputSchema = z.object({
   step: z.string().describe("The current step in the process."),
 });
-export type AddCredentialOutput = z.infer<typeof AddCredentialOutputSchema>;
 
 const addCredentialFlow = ai.defineFlow(
   {
@@ -60,14 +59,13 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput) {
-    const {stream} = await addCredentialFlow(input);
-    return stream;
+    return addCredentialFlow(input);
 }
 
 
 // == REVEAL CREDENTIAL FLOW ==
 
-const RevealCredentialInputSchema = z.object({
+export const RevealCredentialInputSchema = z.object({
     masterPassword: z.string().describe("The user's master password."),
     encryptedPassword: z.string().describe("The encrypted password blob from storage."),
 });
@@ -77,7 +75,6 @@ export type RevealCredentialInput = z.infer<typeof RevealCredentialInputSchema>;
 const RevealCredentialOutputSchema = z.object({
     step: z.string().describe("The current step in the reveal process."),
 });
-export type RevealCredentialOutput = z.infer<typeof RevealCredentialOutputSchema>;
 
 const revealCredentialFlow = ai.defineFlow(
     {
@@ -102,10 +99,12 @@ const revealCredentialFlow = ai.defineFlow(
         // 4. Decrypting with AES-256
         await sleep(600);
         yield { step: "Decrypting with AES-256..." };
+
+        await sleep(500);
+        yield { step: "Done!" };
     }
 );
 
 export async function revealCredential(input: RevealCredentialInput) {
-    const {stream} = await revealCredentialFlow(input);
-    return stream;
+    return revealCredentialFlow(input);
 }

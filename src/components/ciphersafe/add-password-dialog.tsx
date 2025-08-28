@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { PlusCircle, Loader2 } from "lucide-react";
 import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
+import { runFlow } from "@genkit-ai/next/client";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -44,7 +45,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
     setSavingStep("Initiating...");
     
     try {
-        const stream = await addCredential({
+        const {stream} = runFlow(addCredential, {
             masterPassword, // In a real app, this should not be passed directly
             service: values.service,
             username: values.username,
