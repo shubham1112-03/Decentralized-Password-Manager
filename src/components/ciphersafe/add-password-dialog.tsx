@@ -13,6 +13,7 @@ import { PlusCircle, Loader2 } from "lucide-react";
 import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
 import { runFlow } from "@genkit-ai/next/client";
+import type { AddCredentialInput } from "@/ai/flows/credential-types";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -45,12 +46,13 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
     setSavingStep("Initiating...");
     
     try {
-        const {stream} = runFlow(addCredential, {
+        const flowInput: AddCredentialInput = {
             masterPassword, // In a real app, this should not be passed directly
             service: values.service,
             username: values.username,
             password: values.password,
-        });
+        };
+        const {stream} = runFlow(addCredential, flowInput);
 
         for await (const step of stream) {
             setSavingStep(step.step);

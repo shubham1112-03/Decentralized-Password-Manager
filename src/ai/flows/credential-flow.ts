@@ -7,23 +7,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { AddCredentialInput, AddCredentialInputSchema, AddCredentialOutputSchema, RevealCredentialInput, RevealCredentialInputSchema, RevealCredentialOutputSchema } from './credential-types';
 
 // Define a helper for simulation delays
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// == ADD CREDENTIAL FLOW ==
-
-export const AddCredentialInputSchema = z.object({
-  masterPassword: z.string().describe("The user's master password."),
-  service: z.string().describe('The service name for the credential (e.g., GitHub).'),
-  username: z.string().describe('The username for the service.'),
-  password: z.string().describe('The password for the service.'),
-});
-export type AddCredentialInput = z.infer<typeof AddCredentialInputSchema>;
-
-const AddCredentialOutputSchema = z.object({
-  step: z.string().describe("The current step in the process."),
-});
 
 const addCredentialFlow = ai.defineFlow(
   {
@@ -62,19 +49,6 @@ export async function addCredential(input: AddCredentialInput) {
     return addCredentialFlow(input);
 }
 
-
-// == REVEAL CREDENTIAL FLOW ==
-
-export const RevealCredentialInputSchema = z.object({
-    masterPassword: z.string().describe("The user's master password."),
-    encryptedPassword: z.string().describe("The encrypted password blob from storage."),
-});
-export type RevealCredentialInput = z.infer<typeof RevealCredentialInputSchema>;
-
-
-const RevealCredentialOutputSchema = z.object({
-    step: z.string().describe("The current step in the reveal process."),
-});
 
 const revealCredentialFlow = ai.defineFlow(
     {
