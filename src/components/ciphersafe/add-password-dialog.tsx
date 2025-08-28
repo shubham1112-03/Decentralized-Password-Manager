@@ -104,7 +104,7 @@ export default function AddPasswordDialog({ onAddCredential }: AddPasswordDialog
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username / Email</FormLabel>
+                  <FormLabel>Service Username / Email</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., user@example.com" {...field} disabled={isSaving} />
                   </FormControl>
@@ -117,7 +117,7 @@ export default function AddPasswordDialog({ onAddCredential }: AddPasswordDialog
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Service Password</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••••••" {...field} disabled={isSaving} />
                   </FormControl>
