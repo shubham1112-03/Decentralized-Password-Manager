@@ -56,9 +56,9 @@ export function decrypt(encryptedText: string, key: Buffer): string {
 
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(encrypted, 'hex', 'utf8'), decipher.final('utf8')]);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     
-    return decrypted.toString();
+    return decrypted.toString('utf8');
   } catch (error) {
     console.error("Decryption failed:", error);
     // In a real app, you might want to throw a more generic error
