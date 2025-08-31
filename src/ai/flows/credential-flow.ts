@@ -58,7 +58,13 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput) {
-    return addCredentialFlow(input);
+    const { stream, output } = await addCredentialFlow(input);
+    // Note: In a real app, you might handle the stream differently
+    // For this use case, we'll just wait for the final output.
+    for await (const _ of stream) {
+        // Consuming the stream to ensure it runs
+    }
+    return output();
 }
 
 
@@ -97,5 +103,11 @@ const revealCredentialFlow = ai.defineFlow(
 );
 
 export async function revealCredential(input: RevealCredentialInput) {
-    return revealCredentialFlow(input);
+    const { stream, output } = await revealCredentialFlow(input);
+     // Note: In a real app, you might handle the stream differently
+    // For this use case, we'll just wait for the final output.
+    for await (const _ of stream) {
+        // Consuming the stream to ensure it runs
+    }
+    return output();
 }

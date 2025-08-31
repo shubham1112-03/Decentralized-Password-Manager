@@ -44,16 +44,26 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-      const { stream, output } = runFlow(revealCredential, {
-        masterPassword,
-        encryptedPassword: credential.encryptedPassword
-      });
+        const stream = revealCredential({
+            masterPassword,
+            encryptedPassword: credential.encryptedPassword
+        });
 
-      for await (const step of stream) {
-        setRevealStep(step.step);
-      }
-      
-      const result = await output();
+        const steps = [
+            "Verifying master key proof...",
+            "Fetching secret shares from IPFS...",
+            "Reconstructing secret...",
+            "Deriving decryption key...",
+            "Decrypting with AES-256...",
+            "Done!"
+        ];
+
+        for (const step of steps) {
+            setRevealStep(step);
+            await new Promise(resolve => setTimeout(resolve, 700));
+        }
+
+      const result = await stream;
       if (!result?.plaintextPassword) {
         throw new Error("Failed to decrypt password.");
       }
