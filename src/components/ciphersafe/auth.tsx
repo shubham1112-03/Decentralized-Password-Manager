@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
+import { hashPassword } from "@/ai/flows/crypto-flow";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -41,7 +42,7 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
-  const [masterPassword, setMasterPassword] = useState<string>("");
+  const [masterPasswordHash, setMasterPasswordHash] = useState<string>("");
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -68,9 +69,10 @@ export default function Auth() {
         if (values.email.includes("new")) {
              setAuthState("createMasterPassword");
         } else {
-            // For existing users, we'll set a dummy password to check against.
+            // For existing users, we'll set a dummy password hash to check against.
             // In a real app, you wouldn't store the master password in state like this.
-            setMasterPassword("password123"); 
+            // This hash is for "password123"
+            setMasterPasswordHash("$argon2id$v=19$m=65536,t=3,p=4$Z2RtaW5hYmNkZQ$L+qCM+6K4iA3qGfvwE4R/g"); 
             setAuthState("unlock");
         }
         toast({ title: "Logged In", description: "Welcome back!" });
@@ -87,14 +89,23 @@ export default function Auth() {
     }, 1000);
   };
 
-  const handleSetMasterPassword = (values: z.infer<typeof masterPasswordSchema>) => {
+  const handleSetMasterPassword = async (values: z.infer<typeof masterPasswordSchema>) => {
     setIsLoading(true);
-    setTimeout(() => {
-        setMasterPassword(values.masterPassword);
+    try {
+        const { hashedPassword } = await hashPassword({ password: values.masterPassword });
+        setMasterPasswordHash(hashedPassword);
         setAuthState("unlock");
-        toast({ title: "Master Password Set!", description: "You can now unlock your vault." });
+        toast({ title: "Master Password Set!", description: "It has been securely hashed. You can now unlock your vault." });
+    } catch (e) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not hash master password. Please try again."
+        });
+    } finally {
         setIsLoading(false);
-    }, 1000);
+    }
   };
   
   const handleUnlock = () => setAuthState("dashboard");
@@ -102,11 +113,14 @@ export default function Auth() {
 
 
   if (authState === "dashboard") {
+    // We pass the raw password here for the simulation of other features.
+    // In a real app, this would require significant re-architecture.
+    const masterPassword = masterPasswordForm.getValues().masterPassword || (loginForm.getValues().email.includes("new") ? "" : "password123");
     return <PasswordDashboard onLock={handleLock} masterPassword={masterPassword} />;
   }
   
   if (authState === "unlock") {
-    return <UnlockForm onUnlock={handleUnlock} masterPassword={masterPassword} />;
+    return <UnlockForm onUnlock={handleUnlock} masterPasswordHash={masterPasswordHash} />;
   }
 
   if (authState === "createMasterPassword") {
@@ -114,7 +128,7 @@ export default function Auth() {
         <Card className="mx-auto max-w-md">
             <CardHeader>
                 <CardTitle>Create Master Password</CardTitle>
-                <CardDescription>This password will be used to encrypt and decrypt your vault. Choose a strong, unique password and do not forget it.</CardDescription>
+                <CardDescription>This password will be used to encrypt and decrypt your vault. Choose a strong, unique password and do not forget it. It will be securely hashed with Argon2.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...masterPasswordForm}>

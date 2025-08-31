@@ -10,17 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { verifyPassword } from "@/ai/flows/crypto-flow";
 
 const formSchema = z.object({
   masterPassword: z.string().min(1, "Master password cannot be empty."),
 });
 
 type UnlockFormProps = {
-  masterPassword: string;
+  masterPasswordHash: string;
   onUnlock: () => void;
 };
 
-export default function UnlockForm({ masterPassword, onUnlock }: UnlockFormProps) {
+export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -31,26 +32,41 @@ export default function UnlockForm({ masterPassword, onUnlock }: UnlockFormProps
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    // Simulate ZKP verification and vault decryption
-    setTimeout(() => {
-      if (values.masterPassword !== masterPassword) {
+    
+    try {
+        const { isVerified } = await verifyPassword({
+            hashedPassword: masterPasswordHash,
+            password: values.masterPassword
+        });
+
+        if (!isVerified) {
+            toast({
+            variant: "destructive",
+            title: "Invalid Password",
+            description: "The master password you entered is incorrect.",
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        onUnlock();
+        toast({
+            title: "Vault Unlocked",
+            description: "Welcome back! Password verified successfully.",
+        });
+
+    } catch (e) {
+        console.error(e);
         toast({
           variant: "destructive",
-          title: "Invalid Password",
-          description: "The master password you entered is incorrect.",
+          title: "Verification Error",
+          description: "An error occurred while verifying the password. Please try again.",
         });
+    } finally {
         setIsLoading(false);
-        return;
-      }
-      setIsLoading(false);
-      onUnlock();
-      toast({
-        title: "Vault Unlocked",
-        description: "Welcome back!",
-      });
-    }, 1500);
+    }
   };
 
   return (
