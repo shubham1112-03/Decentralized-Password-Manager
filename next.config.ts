@@ -26,4 +26,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-module.exports = require('@genkit-ai/next').genkit(nextConfig);
+module.exports = nextConfig;
