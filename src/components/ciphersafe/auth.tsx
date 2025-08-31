@@ -14,6 +14,9 @@ import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
 import { hashPassword, verifyPassword } from "@/ai/flows/crypto-flow";
+import { auth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, User } from "firebase/auth";
+
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -39,20 +42,12 @@ const masterPasswordSchema = z.object({
 
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
-// In a real app, this would come from a database.
-// We'll simulate it here.
-const simulatedUser = {
-    email: "user@example.com",
-    // This is the Argon2 hash for "password123"
-    hashedPassword: "$argon2id$v=19$m=65536,t=3,p=4$iR1EnUq+2b4B92gCjggVng$h/CI6C0iXA4uIqQUQd8A23JkCp8dM9sP5u5U8zO7P14"
-};
-
-
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
-  const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); // State to hold the hash
+  const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); 
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -69,72 +64,74 @@ export default function Auth() {
     resolver: zodResolver(masterPasswordSchema),
     defaultValues: { masterPassword: "", confirmMasterPassword: "" },
   });
+  
+  useState(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+         // In a real app, you would fetch this from a secure backend (e.g., Firestore)
+        const storedMasterPasswordHash = localStorage.getItem(`masterPasswordHash_${currentUser.uid}`);
+        if (storedMasterPasswordHash) {
+          setMasterPasswordHash(storedMasterPasswordHash);
+          setAuthState("unlock");
+        } else {
+          setAuthState("createMasterPassword");
+        }
+      } else {
+        setAuthState("login");
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    
-    if (values.email !== simulatedUser.email) {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        setUser(userCredential.user);
+        toast({ title: "Logged In", description: "Welcome back!" });
+    } catch (e: any) {
         toast({
             variant: "destructive",
             title: "Login Failed",
-            description: "No user found with that email address."
-        });
-        setIsLoading(false);
-        return;
-    }
-
-    try {
-        const { isVerified } = await verifyPassword({ 
-            hashedPassword: simulatedUser.hashedPassword,
-            password: values.password 
-        });
-
-        if (!isVerified) {
-            toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: "The password you entered is incorrect."
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        // Password is correct, proceed
-        if (masterPasswordHash) {
-            setAuthState("unlock");
-            toast({ title: "Logged In", description: "Welcome back! Please unlock your vault." });
-        } else {
-            setAuthState("createMasterPassword");
-            toast({ title: "Logged In", description: "Welcome! Please create a master password for your new vault." });
-        }
-    } catch (e: any) {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "An unexpected error occurred during login. Please try again."
+            description: e.message || "An unexpected error occurred during login. Please try again."
         });
     } finally {
         setIsLoading(false);
     }
   };
 
-  const handleSignup = (values: z.infer<typeof signupSchema>) => {
+  const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
-    setTimeout(() => {
-        setAuthState("createMasterPassword");
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        setUser(userCredential.user);
         toast({ title: "Account Created", description: "Please create your master password." });
+    } catch (e: any) {
+         toast({
+            variant: "destructive",
+            title: "Sign-up Failed",
+            description: e.message || "An unexpected error occurred during sign-up. Please try again."
+        });
+    } finally {
         setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSetMasterPassword = async (values: z.infer<typeof masterPasswordSchema>) => {
     setIsLoading(true);
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "You must be logged in to set a master password."});
+        setIsLoading(false);
+        return;
+    }
+
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
+        // In a real app, save this hash to a secure, user-specific location (e.g., Firestore document)
+        localStorage.setItem(`masterPasswordHash_${user.uid}`, hashedPassword);
         setMasterPasswordHash(hashedPassword);
-        setRawMasterPassword(values.masterPassword); // Store the raw password for the session
         setAuthState("unlock");
         toast({ title: "Master Password Set!", description: "It has been securely hashed. You can now unlock your vault." });
     } catch (e) {
@@ -157,10 +154,23 @@ export default function Auth() {
     setRawMasterPassword(""); 
     setAuthState("unlock");
   }
+  
+  const handleLogout = async () => {
+    try {
+        await auth.signOut();
+        setUser(null);
+        setRawMasterPassword("");
+        setMasterPasswordHash("");
+        setAuthState("login");
+        toast({title: "Logged Out", description: "You have been successfully logged out."});
+    } catch (e) {
+        toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
+    }
+  }
 
 
   if (authState === "dashboard") {
-    return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} />;
+    return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} onLogout={handleLogout} />;
   }
   
   if (authState === "unlock") {
@@ -172,7 +182,7 @@ export default function Auth() {
         <Card className="mx-auto max-w-md">
             <CardHeader>
                 <CardTitle>Create Master Password</CardTitle>
-                <CardDescription>This password will be used to encrypt and decrypt your vault. Choose a strong, unique password and do not forget it. It will be securely hashed with Argon2.</CardDescription>
+                <CardDescription>This password encrypts your vault. Choose a strong, unique password and **do not forget it**. We cannot recover it for you.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...masterPasswordForm}>
@@ -204,11 +214,14 @@ export default function Auth() {
                             )}
                         />
                         <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : "Set Master Password"}
+                            {isLoading ? <Loader2 className="animate-spin" /> : "Set Master Password & Encrypt Vault"}
                         </Button>
                     </form>
                 </Form>
             </CardContent>
+             <CardFooter>
+                <Button variant="link" onClick={handleLogout} className="w-full">Logout</Button>
+            </CardFooter>
         </Card>
     )
   }
@@ -216,8 +229,8 @@ export default function Auth() {
   return (
     <Card className="mx-auto max-w-md">
         <CardHeader>
-             <CardTitle>Authentication</CardTitle>
-            <CardDescription>Login with user@example.com and password "password123". Or create a new account.</CardDescription>
+             <CardTitle>CipherSafe</CardTitle>
+            <CardDescription>A decentralized password vault. Please log in or create an account.</CardDescription>
         </CardHeader>
         <CardContent>
             <Tabs defaultValue="login">

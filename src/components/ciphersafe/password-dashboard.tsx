@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Credential } from "@/components/ciphersafe/types";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
+import { Lock, LogOut } from "lucide-react";
 import AddPasswordDialog from "./add-password-dialog";
 import PasswordCard from "./password-card";
 import { useToast } from "@/hooks/use-toast";
@@ -32,9 +32,10 @@ const initialCredentials: Omit<Credential, 'id' | 'plaintextPassword'>[] = [
 type PasswordDashboardProps = {
   onLock: () => void;
   masterPassword: string;
+  onLogout: () => void;
 };
 
-export default function PasswordDashboard({ onLock, masterPassword }: PasswordDashboardProps) {
+export default function PasswordDashboard({ onLock, masterPassword, onLogout }: PasswordDashboardProps) {
   const [credentials, setCredentials] = useState<Credential[]>(() => initialCredentials.map(c => ({...c, id: crypto.randomUUID(), plaintextPassword: '' })));
   const { toast } = useToast();
 
@@ -66,10 +67,16 @@ export default function PasswordDashboard({ onLock, masterPassword }: PasswordDa
     <div className="w-full">
       <div className="mb-6 flex items-center justify-between gap-4">
         <AddPasswordDialog onAddCredential={addCredential} masterPassword={masterPassword} />
-        <Button variant="secondary" onClick={onLock}>
-          <Lock className="mr-2 h-4 w-4" />
-          Lock Vault
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={onLock}>
+              <Lock className="mr-2 h-4 w-4" />
+              Lock Vault
+            </Button>
+            <Button variant="outline" onClick={onLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+        </div>
       </div>
       
       {credentials.length > 0 ? (

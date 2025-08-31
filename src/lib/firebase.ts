@@ -7,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 // IMPORTANT: This is a public configuration and is safe to expose.
 // Security is handled by Firebase Security Rules.
 const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+  "projectId": "ciphersafe-eeuf7",
+  "appId": "1:316294904458:web:4d510574a9e2167a588b73",
+  "storageBucket": "ciphersafe-eeuf7.firebasestorage.app",
+  "apiKey": "AIzaSyCVKNQO1KZi2n0A8TKQFStczRVmoaJ2GIE",
+  "authDomain": "ciphersafe-eeuf7.firebaseapp.com",
+  "messagingSenderId": "316294904458"
 };
 
 // Initialize Firebase
