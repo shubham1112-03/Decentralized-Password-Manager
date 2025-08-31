@@ -51,7 +51,7 @@ export function decrypt(encryptedText: string, key: Buffer): string {
     const encrypted = Buffer.from(parts[2], 'hex');
 
     if (iv.length !== IV_LENGTH) {
-        throw new Error(`Invalid IV length. Expected ${IV_LENGTH} bytes.`);
+        throw new Error(`Invalid IV length. Expected ${IV_LENGTH} bytes but got ${iv.length}.`);
     }
 
     const decipher = createDecipheriv(ALGORITHM, key, iv);
