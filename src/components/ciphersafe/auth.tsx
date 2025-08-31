@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
-import { hashPassword } from "@/ai/flows/crypto-flow";
+import { hashPassword, verifyPassword } from "@/ai/flows/crypto-flow";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -39,8 +39,13 @@ const masterPasswordSchema = z.object({
 
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
-// In a real app, this would come from a database after user login.
-// We'll simulate it here with a component-level state that persists.
+// In a real app, this would come from a database.
+// We'll simulate it here with a component-level state that persists across re-renders.
+let simulatedUser = {
+    email: "user@example.com",
+    // This is the Argon2 hash for "password123"
+    hashedPassword: "$argon2id$v=19$m=65536,t=3,p=4$iR1EnUq+2b4B92gCjggVng$h/CI6C0iXA4uIqQUQd8A23JkCp8dM9sP5u5U8zO7P14"
+};
 let simulatedUserHasMasterPassword = false;
 let simulatedMasterPasswordHash = "";
 
@@ -67,20 +72,54 @@ export default function Auth() {
   });
 
 
-  const handleLogin = (values: z.infer<typeof loginSchema>) => {
+  const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    setTimeout(() => {
-        // This simulation now checks our persistent flag.
+    
+    // Simulate checking if user exists
+    if (values.email !== simulatedUser.email) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "No user found with that email address."
+        });
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+        const { isVerified } = await verifyPassword({ 
+            hashedPassword: simulatedUser.hashedPassword,
+            password: values.password 
+        });
+
+        if (!isVerified) {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "The password you entered is incorrect."
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        // Password is correct, proceed
         if (simulatedUserHasMasterPassword) {
             setAuthState("unlock");
             toast({ title: "Logged In", description: "Welcome back! Please unlock your vault." });
         } else {
-            // For a "first-time" user in this session, direct to create master password.
             setAuthState("createMasterPassword");
             toast({ title: "Logged In", description: "Welcome! Please create a master password for your new vault." });
         }
+    } catch (e: any) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "An unexpected error occurred during login. Please try again."
+        });
+    } finally {
         setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSignup = (values: z.infer<typeof signupSchema>) => {
@@ -116,19 +155,16 @@ export default function Auth() {
   };
   
   const handleUnlock = (verifiedMasterPassword: string) => {
-    // When unlocking, we also receive the verified raw password to use for encryption/decryption
     setRawMasterPassword(verifiedMasterPassword);
     setAuthState("dashboard");
   }
   const handleLock = () => {
-    setRawMasterPassword(""); // Clear the raw password when locking
+    setRawMasterPassword(""); 
     setAuthState("unlock");
   }
 
 
   if (authState === "dashboard") {
-    // We pass the raw password here for the simulation of other features.
-    // In a real app, this would require significant re-architecture.
     return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} />;
   }
   
@@ -186,7 +222,7 @@ export default function Auth() {
     <Card className="mx-auto max-w-md">
         <CardHeader>
              <CardTitle>Authentication</CardTitle>
-            <CardDescription>Login or create an account to access your vault.</CardDescription>
+            <CardDescription>Login with user@example.com and password "password123". Or create a new account.</CardDescription>
         </CardHeader>
         <CardContent>
             <Tabs defaultValue="login">
@@ -282,3 +318,4 @@ export default function Auth() {
     </Card>
   );
 }
+    
