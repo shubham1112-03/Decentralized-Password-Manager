@@ -43,6 +43,7 @@ export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [masterPasswordHash, setMasterPasswordHash] = useState<string>("");
+  const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -72,6 +73,7 @@ export default function Auth() {
             // For existing users, we'll set a dummy password hash to check against.
             // In a real app, you wouldn't store the master password in state like this.
             // This hash is for "password123"
+            setRawMasterPassword("password123");
             setMasterPasswordHash("$argon2id$v=19$m=65536,t=3,p=4$Z2RtaW5hYmNkZQ$L+qCM+6K4iA3qGfvwE4R/g"); 
             setAuthState("unlock");
         }
@@ -94,6 +96,7 @@ export default function Auth() {
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
         setMasterPasswordHash(hashedPassword);
+        setRawMasterPassword(values.masterPassword); // Store the raw password for the session
         setAuthState("unlock");
         toast({ title: "Master Password Set!", description: "It has been securely hashed. You can now unlock your vault." });
     } catch (e) {
@@ -115,8 +118,7 @@ export default function Auth() {
   if (authState === "dashboard") {
     // We pass the raw password here for the simulation of other features.
     // In a real app, this would require significant re-architecture.
-    const masterPassword = masterPasswordForm.getValues().masterPassword || (loginForm.getValues().email.includes("new") ? "" : "password123");
-    return <PasswordDashboard onLock={handleLock} masterPassword={masterPassword} />;
+    return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} />;
   }
   
   if (authState === "unlock") {
