@@ -10,8 +10,12 @@ export const AddCredentialInputSchema = z.object({
 });
 export type AddCredentialInput = z.infer<typeof AddCredentialInputSchema>;
 
-export const AddCredentialOutputSchema = z.object({
+export const AddCredentialStreamSchema = z.object({
   step: z.string().describe("The current step in the process."),
+});
+
+export const AddCredentialOutputSchema = z.object({
+    encryptedPassword: z.string().describe("The AES-256 encrypted password, including IV and auth tag."),
 });
 
 
@@ -24,6 +28,10 @@ export const RevealCredentialInputSchema = z.object({
 export type RevealCredentialInput = z.infer<typeof RevealCredentialInputSchema>;
 
 
-export const RevealCredentialOutputSchema = z.object({
+export const RevealCredentialStreamSchema = z.object({
     step: z.string().describe("The current step in the reveal process."),
+});
+
+export const RevealCredentialOutputSchema = z.object({
+    plaintextPassword: z.string().describe("The decrypted password."),
 });

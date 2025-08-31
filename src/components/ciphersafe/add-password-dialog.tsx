@@ -22,7 +22,7 @@ const formSchema = z.object({
 });
 
 type AddPasswordDialogProps = {
-  onAddCredential: (credential: Credential) => void;
+  onAddCredential: (credential: Omit<Credential, "id" | "plaintextPassword">) => void;
   masterPassword: string;
 };
 
@@ -47,34 +47,37 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
     
     try {
         const flowInput: AddCredentialInput = {
-            masterPassword, // In a real app, this should not be passed directly
+            masterPassword,
             service: values.service,
             username: values.username,
             password: values.password,
         };
-        const {stream} = runFlow(addCredential, flowInput);
+        const { stream, output } = runFlow(addCredential, flowInput);
 
         for await (const step of stream) {
             setSavingStep(step.step);
         }
 
+        const result = await output();
+        if (!result) {
+            throw new Error("Flow did not return an encrypted password.");
+        }
+
         const newCredential = {
-            id: crypto.randomUUID(),
             service: values.service,
             username: values.username,
-            encryptedPassword: `encrypted_${values.password}_${Math.random()}`,
-            plaintextPassword: values.password, // For simulation
+            encryptedPassword: result.encryptedPassword,
         };
 
         onAddCredential(newCredential);
         setIsOpen(false);
 
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
         toast({
             variant: "destructive",
             title: "Error Saving Credential",
-            description: "Something went wrong while saving your password. Please try again."
+            description: e.message || "Something went wrong while saving your password. Please try again."
         });
     } finally {
         setIsSaving(false);

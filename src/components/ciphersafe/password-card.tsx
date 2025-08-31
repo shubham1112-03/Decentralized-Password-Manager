@@ -27,14 +27,14 @@ type PasswordCardProps = {
 };
 
 export default function PasswordCard({ credential, onDelete, masterPassword }: PasswordCardProps) {
-  const [isRevealed, setIsRevealed] = useState(false);
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealStep, setRevealStep] = useState("");
   const { toast } = useToast();
 
   const handleRevealToggle = async () => {
-    if (isRevealed) {
-      setIsRevealed(false);
+    if (revealedPassword) {
+      setRevealedPassword(null);
       return;
     }
 
@@ -44,7 +44,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-      const {stream} = runFlow(revealCredential, {
+      const { stream, output } = runFlow(revealCredential, {
         masterPassword,
         encryptedPassword: credential.encryptedPassword
       });
@@ -52,14 +52,20 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
       for await (const step of stream) {
         setRevealStep(step.step);
       }
-      setIsRevealed(true);
+      
+      const result = await output();
+      if (!result?.plaintextPassword) {
+        throw new Error("Failed to decrypt password.");
+      }
+      setRevealedPassword(result.plaintextPassword);
 
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setRevealedPassword(null);
       toast({
         variant: "destructive",
         title: "Error Revealing Credential",
-        description: "Something went wrong. Please try again."
+        description: e.message || "Could not decrypt the password. Please check your master password and try again."
       });
     } finally {
       setIsRevealing(false);
@@ -67,13 +73,15 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
   };
 
   const handleCopy = () => {
-    // In a real app, the revealed password would come from the flow result
-    navigator.clipboard.writeText(credential.plaintextPassword);
+    if (!revealedPassword) return;
+    navigator.clipboard.writeText(revealedPassword);
     toast({
       title: "Password Copied!",
       description: `Password for ${credential.service} has been copied to your clipboard.`,
     });
   };
+
+  const isRevealed = revealedPassword !== null;
 
   return (
     <Card className="flex flex-col justify-between">
@@ -96,7 +104,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
                     </div>
                 ) : isRevealed ? (
                     <div className="flex w-full items-center justify-between gap-2">
-                        <span className="font-mono text-lg tracking-wider truncate">{credential.plaintextPassword}</span>
+                        <span className="font-mono text-lg tracking-wider truncate">{revealedPassword}</span>
                         <Button variant="ghost" size="icon" onClick={handleCopy} className="flex-shrink-0">
                             <Copy className="h-4 w-4" />
                             <span className="sr-only">Copy password</span>
