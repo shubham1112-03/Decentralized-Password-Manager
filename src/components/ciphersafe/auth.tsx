@@ -65,19 +65,14 @@ export default function Auth() {
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     setTimeout(() => {
-        // This is a simulation. In a real app, you'd check if the user has a master password stored.
-        // We'll simulate that existing users need to unlock, new users need to create a master password.
-        if (values.email.includes("new")) {
-             setAuthState("createMasterPassword");
-        } else {
-            // For existing users, we'll set a dummy password hash to check against.
-            // In a real app, you wouldn't store the master password in state like this.
-            // This hash is for "password123"
-            setRawMasterPassword("password123");
-            setMasterPasswordHash("$argon2id$v=19$m=65536,t=3,p=4$Z2RtaW5hYmNkZQ$L+qCM+6K4iA3qGfvwE4R/g"); 
+        // This simulation now checks if a master password hash already exists in our state.
+        if (masterPasswordHash) {
             setAuthState("unlock");
+        } else {
+            // For a "first-time" user in this session, direct to create master password.
+            setAuthState("createMasterPassword");
         }
-        toast({ title: "Logged In", description: "Welcome back!" });
+        toast({ title: "Logged In", description: "Welcome back! Please unlock your vault." });
         setIsLoading(false);
     }, 1000);
   };
@@ -111,8 +106,15 @@ export default function Auth() {
     }
   };
   
-  const handleUnlock = () => setAuthState("dashboard");
-  const handleLock = () => setAuthState("unlock");
+  const handleUnlock = (verifiedMasterPassword: string) => {
+    // When unlocking, we also receive the verified raw password to use for encryption/decryption
+    setRawMasterPassword(verifiedMasterPassword);
+    setAuthState("dashboard");
+  }
+  const handleLock = () => {
+    setRawMasterPassword(""); // Clear the raw password when locking
+    setAuthState("unlock");
+  }
 
 
   if (authState === "dashboard") {

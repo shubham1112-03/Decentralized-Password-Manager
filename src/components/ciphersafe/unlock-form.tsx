@@ -18,7 +18,7 @@ const formSchema = z.object({
 
 type UnlockFormProps = {
   masterPasswordHash: string;
-  onUnlock: () => void;
+  onUnlock: (verifiedMasterPassword: string) => void;
 };
 
 export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormProps) {
@@ -36,6 +36,10 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
     setIsLoading(true);
     
     try {
+        if (!masterPasswordHash) {
+            throw new Error("Master password hash is not set. Please create a master password first.");
+        }
+
         const { isVerified } = await verifyPassword({
             hashedPassword: masterPasswordHash,
             password: values.masterPassword
@@ -51,18 +55,18 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
             return;
         }
 
-        onUnlock();
+        onUnlock(values.masterPassword);
         toast({
             title: "Vault Unlocked",
             description: "Welcome back! Password verified successfully.",
         });
 
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
         toast({
           variant: "destructive",
           title: "Verification Error",
-          description: "An error occurred while verifying the password. Please try again.",
+          description: e.message || "An error occurred while verifying the password. Please try again.",
         });
     } finally {
         setIsLoading(false);
