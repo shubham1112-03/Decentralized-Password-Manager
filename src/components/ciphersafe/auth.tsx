@@ -40,20 +40,19 @@ const masterPasswordSchema = z.object({
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
 // In a real app, this would come from a database.
-// We'll simulate it here with a component-level state that persists across re-renders.
-let simulatedUser = {
+// We'll simulate it here.
+const simulatedUser = {
     email: "user@example.com",
     // This is the Argon2 hash for "password123"
     hashedPassword: "$argon2id$v=19$m=65536,t=3,p=4$iR1EnUq+2b4B92gCjggVng$h/CI6C0iXA4uIqQUQd8A23JkCp8dM9sP5u5U8zO7P14"
 };
-let simulatedUserHasMasterPassword = false;
-let simulatedMasterPasswordHash = "";
 
 
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
+  const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); // State to hold the hash
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -75,7 +74,6 @@ export default function Auth() {
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     
-    // Simulate checking if user exists
     if (values.email !== simulatedUser.email) {
         toast({
             variant: "destructive",
@@ -103,7 +101,7 @@ export default function Auth() {
         }
 
         // Password is correct, proceed
-        if (simulatedUserHasMasterPassword) {
+        if (masterPasswordHash) {
             setAuthState("unlock");
             toast({ title: "Logged In", description: "Welcome back! Please unlock your vault." });
         } else {
@@ -135,10 +133,7 @@ export default function Auth() {
     setIsLoading(true);
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
-        // Persist the hash in our simulation
-        simulatedMasterPasswordHash = hashedPassword;
-        simulatedUserHasMasterPassword = true;
-        
+        setMasterPasswordHash(hashedPassword);
         setRawMasterPassword(values.masterPassword); // Store the raw password for the session
         setAuthState("unlock");
         toast({ title: "Master Password Set!", description: "It has been securely hashed. You can now unlock your vault." });
@@ -169,7 +164,7 @@ export default function Auth() {
   }
   
   if (authState === "unlock") {
-    return <UnlockForm onUnlock={handleUnlock} masterPasswordHash={simulatedMasterPasswordHash} />;
+    return <UnlockForm onUnlock={handleUnlock} masterPasswordHash={masterPasswordHash} />;
   }
 
   if (authState === "createMasterPassword") {
