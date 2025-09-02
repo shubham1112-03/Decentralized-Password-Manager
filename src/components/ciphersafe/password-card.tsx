@@ -29,7 +29,6 @@ type PasswordCardProps = {
 export default function PasswordCard({ credential, onDelete, masterPassword }: PasswordCardProps) {
   const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [revealStep, setRevealStep] = useState("");
   const { toast } = useToast();
 
   const handleRevealToggle = async () => {
@@ -41,7 +40,6 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     if (isRevealing) return;
 
     setIsRevealing(true);
-    setRevealStep("Initiating...");
 
     try {
         if (!credential.shares || !credential.zkProof || !credential.publicSignals) {
@@ -56,11 +54,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
             publicSignals: credential.publicSignals
         };
 
-        const result = await revealCredential(flowInput, (chunk) => {
-            if (chunk.step) {
-                setRevealStep(chunk.step);
-            }
-        });
+        const result = await revealCredential(flowInput);
 
       if (!result?.plaintextPassword) {
         throw new Error("Failed to decrypt password.");
@@ -108,7 +102,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
                 {isRevealing ? (
                     <div className="flex items-center text-sm text-muted-foreground">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {revealStep}
+                        Revealing...
                     </div>
                 ) : isRevealed ? (
                     <div className="flex w-full items-center justify-between gap-2">

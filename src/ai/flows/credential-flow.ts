@@ -11,9 +11,7 @@ import {
     AddCredentialInputSchema, 
     AddCredentialOutputSchema, 
     RevealCredentialInputSchema, 
-    RevealCredentialOutputSchema,
-    AddCredentialStreamSchema,
-    RevealCredentialStreamSchema
+    RevealCredentialOutputSchema
 } from './credential-types';
 import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, RevealCredentialOutput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
@@ -45,29 +43,23 @@ const addCredentialFlow = ai.defineFlow(
     name: 'addCredentialFlow',
     inputSchema: AddCredentialInputSchema,
     outputSchema: AddCredentialOutputSchema,
-    streamSchema: AddCredentialStreamSchema,
   },
-  async function* (input) {
+  async (input) => {
     // 1. Deriving encryption key from master password
-    yield { step: "Deriving encryption key..." };
     const key = await getKey(input.masterPassword);
 
     // 2. Encrypt password with AES-256 using the derived key
-    yield { step: "Encrypting password with AES-256..." };
     const encryptedPassword = encrypt(input.password, key);
 
     // 3. Generate Shamir's secret shares from the encrypted password
-    yield { step: "Generating Shamir's secret shares..." };
     const secret = Buffer.from(encryptedPassword, 'utf8');
     const shares = sss.split(secret, { shares: 5, threshold: 3 });
     const sharesAsHex = shares.map(s => s.toString('hex'));
 
     // 4. Distribute shares to IPFS nodes (simulation)
     await sleep(700);
-    yield { step: "Distributing shares to IPFS nodes..." };
     
     // 5. Generate a Zero-Knowledge Proof of password ownership
-    yield { step: "Generating ZK-Proof of ownership..." };
     const { wasmPath, zkeyPath } = await getZkpFiles();
     
     // snarkjs requires a hash as a BigInt. We'll hash the master password.
@@ -83,7 +75,6 @@ const addCredentialFlow = ai.defineFlow(
     );
 
     await sleep(500);
-    yield { step: "Done!" };
 
     return {
       encryptedPassword, // Keep this for simplicity, though it's now "in" the shares
@@ -94,21 +85,8 @@ const addCredentialFlow = ai.defineFlow(
   }
 );
 
-export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void): Promise<AddCredentialOutput> {
-    const streamingFlow = addCredentialFlow(input);
-    let finalResponse: AddCredentialOutput | undefined;
-    for await (const chunk of streamingFlow) {
-        if(chunk.step) {
-            onStep(chunk);
-        } else {
-            // The final chunk is the return value of the flow
-            finalResponse = chunk as AddCredentialOutput;
-        }
-    }
-    if (!finalResponse) {
-        throw new Error("Flow did not return a final response.");
-    }
-    return finalResponse;
+export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
+    return addCredentialFlow(input);
 }
 
 const revealCredentialFlow = ai.defineFlow(
@@ -116,11 +94,9 @@ const revealCredentialFlow = ai.defineFlow(
         name: 'revealCredentialFlow',
         inputSchema: RevealCredentialInputSchema,
         outputSchema: RevealCredentialOutputSchema,
-        streamSchema: RevealCredentialStreamSchema
     },
-    async function* (input) {
+    async (input) => {
         // 1. Verify master key proof (ZKP)
-        yield { step: "Verifying master key proof..." };
         const { verificationKey } = await getZkpFiles();
         const proof = JSON.parse(input.zkProof);
         const publicSignals = JSON.parse(input.publicSignals);
@@ -131,43 +107,24 @@ const revealCredentialFlow = ai.defineFlow(
         }
 
         // 2. Fetching secret shares from IPFS (simulation)
-        yield { step: "Fetching secret shares from IPFS..." };
         await sleep(600);
         const sharesAsBuffers = input.shares.map(s => Buffer.from(s, 'hex'));
 
         // 3. Reconstructing secret from shares
-        yield { step: "Reconstructing secret..." };
         // We only need the threshold number of shares (e.g., 3 out of 5)
         const reconstructedSecretBuffer = sss.combine(sharesAsBuffers.slice(0, 3));
         const reconstructedEncryptedPassword = reconstructedSecretBuffer.toString('utf8');
 
         // 4. Decrypting with AES-256
-        yield { step: "Deriving decryption key..." };
         const key = await getKey(input.masterPassword);
-
-        yield { step: "Decrypting with AES-256..." };
         const plaintextPassword = decrypt(reconstructedEncryptedPassword, key);
 
         await sleep(500);
-        yield { step: "Done!" };
 
         return { plaintextPassword };
     }
 );
 
-export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void): Promise<RevealCredentialOutput> {
-    const streamingFlow = revealCredentialFlow(input);
-    let finalResponse: RevealCredentialOutput | undefined;
-     for await (const chunk of streamingFlow) {
-        if(chunk.step) {
-            onStep(chunk);
-        } else {
-             // The final chunk is the return value of the flow
-            finalResponse = chunk as RevealCredentialOutput;
-        }
-    }
-    if (!finalResponse) {
-        throw new Error("Flow did not return a final response.");
-    }
-    return finalResponse;
+export async function revealCredential(input: RevealCredentialInput): Promise<RevealCredentialOutput> {
+    return revealCredentialFlow(input);
 }

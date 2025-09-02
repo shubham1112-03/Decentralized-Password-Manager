@@ -30,7 +30,6 @@ type AddPasswordDialogProps = {
 export default function AddPasswordDialog({ onAddCredential, masterPassword }: AddPasswordDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [savingStep, setSavingStep] = useState("");
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,7 +43,6 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
-    setSavingStep("Initiating...");
     
     const user = auth.currentUser;
     if (!user) {
@@ -65,18 +63,11 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             password: values.password,
         };
 
-        const result = await addCredential(flowInput, (chunk) => {
-          if (chunk.step) {
-            setSavingStep(chunk.step);
-          }
-        });
+        const result = await addCredential(flowInput);
         
-
         if (!result) {
             throw new Error("Flow did not return the required credential data.");
         }
-        
-        setSavingStep("Saving to database...");
 
         const newCredentialData = {
             uid: user.uid,
@@ -112,7 +103,6 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
       if (!open) {
         form.reset();
         setIsSaving(false);
-        setSavingStep("");
       }
     }}>
       <DialogTrigger asChild>
@@ -174,7 +164,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {savingStep}
+                    Saving to Vault...
                   </>
                 ) : (
                   "Save to Vault"
