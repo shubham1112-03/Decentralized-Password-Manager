@@ -27,14 +27,20 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 async function getZkpFiles() {
-    // In Next.js, process.cwd() is the project root.
-    const wasmPath = path.join(process.cwd(), 'src', 'ai', 'zkp', 'circuit.wasm');
-    const zkeyPath = path.join(process.cwd(), 'src', 'ai', 'zkp', 'circuit_final.zkey');
-    const vkeyPath = path.join(process.cwd(), 'src', 'ai', 'zkp', 'verification_key.json');
+    // In Next.js, files in the `public` directory are served at the root.
+    const wasmPath = path.join(process.cwd(), 'public', 'zkp', 'circuit.wasm');
+    const zkeyPath = path.join(process.cwd(), 'public', 'zkp', 'circuit_final.zkey');
+    const vkeyPath = path.join(process.cwd(), 'public', 'zkp', 'verification_key.json');
 
-    const verificationKey = JSON.parse(await fs.readFile(vkeyPath, 'utf8'));
+    const [wasmBuffer, zkeyBuffer, vkeyJson] = await Promise.all([
+        fs.readFile(wasmPath),
+        fs.readFile(zkeyPath),
+        fs.readFile(vkeyPath, 'utf8')
+    ]);
 
-    return { wasmPath, zkeyPath, verificationKey };
+    const verificationKey = JSON.parse(vkeyJson);
+
+    return { wasmBuffer, zkeyBuffer, verificationKey };
 }
 
 
@@ -60,7 +66,7 @@ const addCredentialFlow = ai.defineFlow(
     await sleep(700);
     
     // 5. Generate a Zero-Knowledge Proof of password ownership
-    const { wasmPath, zkeyPath } = await getZkpFiles();
+    const { wasmBuffer, zkeyBuffer } = await getZkpFiles();
     
     // snarkjs requires a hash as a BigInt. We'll hash the master password.
     // In a real scenario, you'd use a more robust pre-image.
@@ -70,8 +76,8 @@ const addCredentialFlow = ai.defineFlow(
     
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
         { a, b }, // The witness
-        wasmPath,
-        zkeyPath
+        wasmBuffer,
+        zkeyBuffer
     );
 
     await sleep(500);
