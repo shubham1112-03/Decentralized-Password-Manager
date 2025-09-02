@@ -17,8 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { revealCredentialFlow } from "@/ai/flows/credential-flow";
-import { runFlow } from "@genkit-ai/next/client";
+import { revealCredential } from "@/ai/flows/credential-flow";
 import type { RevealCredentialInput } from "@/ai/flows/credential-types";
 
 type PasswordCardProps = {
@@ -57,13 +56,12 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
             publicSignals: credential.publicSignals
         };
 
-        const stream = runFlow(revealCredentialFlow, flowInput, (chunk) => {
+        const result = await revealCredential(flowInput, (chunk) => {
             if (chunk.step) {
                 setRevealStep(chunk.step);
             }
         });
 
-      const result = await stream;
       if (!result?.plaintextPassword) {
         throw new Error("Failed to decrypt password.");
       }

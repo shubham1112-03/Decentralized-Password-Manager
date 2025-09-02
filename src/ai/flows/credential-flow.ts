@@ -7,6 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import type { runFlow } from '@genkit-ai/next/client';
 import { 
     AddCredentialInputSchema, 
     AddCredentialOutputSchema, 
@@ -15,6 +16,7 @@ import {
     AddCredentialStreamSchema,
     RevealCredentialStreamSchema
 } from './credential-types';
+import type { AddCredentialInput, RevealCredentialInput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
 import * as snarkjs from 'snarkjs';
@@ -39,7 +41,7 @@ async function getZkpFiles() {
 }
 
 
-export const addCredentialFlow = ai.defineFlow(
+const addCredentialFlow = ai.defineFlow(
   {
     name: 'addCredentialFlow',
     inputSchema: AddCredentialInputSchema,
@@ -93,7 +95,17 @@ export const addCredentialFlow = ai.defineFlow(
   }
 );
 
-export const revealCredentialFlow = ai.defineFlow(
+export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void) {
+    const stream = await runFlow(addCredentialFlow, input);
+    for await (const chunk of stream) {
+        if(chunk.step) {
+            onStep(chunk);
+        }
+    }
+    return stream.output();
+}
+
+const revealCredentialFlow = ai.defineFlow(
     {
         name: 'revealCredentialFlow',
         inputSchema: RevealCredentialInputSchema,
@@ -136,3 +148,13 @@ export const revealCredentialFlow = ai.defineFlow(
         return { plaintextPassword };
     }
 );
+
+export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void) {
+    const stream = await runFlow(revealCredentialFlow, input);
+     for await (const chunk of stream) {
+        if(chunk.step) {
+            onStep(chunk);
+        }
+    }
+    return stream.output();
+}

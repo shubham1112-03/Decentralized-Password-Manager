@@ -10,9 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { PlusCircle, Loader2 } from "lucide-react";
-import { addCredentialFlow } from "@/ai/flows/credential-flow";
+import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
-import { runFlow } from "@genkit-ai/next/client";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
 import { auth, db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
@@ -66,13 +65,12 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             password: values.password,
         };
 
-        const stream = runFlow(addCredentialFlow, flowInput, (chunk) => {
+        const result = await addCredential(flowInput, (chunk) => {
           if (chunk.step) {
             setSavingStep(chunk.step);
           }
         });
         
-        const result = await stream;
 
         if (!result) {
             throw new Error("Flow did not return the required credential data.");
