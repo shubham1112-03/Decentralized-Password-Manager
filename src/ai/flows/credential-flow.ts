@@ -15,7 +15,7 @@ import {
     AddCredentialStreamSchema,
     RevealCredentialStreamSchema
 } from './credential-types';
-import type { AddCredentialInput, RevealCredentialInput } from './credential-types';
+import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, RevealCredentialOutput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
 import * as snarkjs from 'snarkjs';
@@ -94,14 +94,21 @@ const addCredentialFlow = ai.defineFlow(
   }
 );
 
-export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void) {
-    const {stream, response} = addCredentialFlow(input);
-    for await (const chunk of stream) {
+export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void): Promise<AddCredentialOutput> {
+    const streamingFlow = addCredentialFlow(input);
+    let finalResponse: AddCredentialOutput | undefined;
+    for await (const chunk of streamingFlow) {
         if(chunk.step) {
             onStep(chunk);
+        } else {
+            // The final chunk is the return value of the flow
+            finalResponse = chunk as AddCredentialOutput;
         }
     }
-    return response;
+    if (!finalResponse) {
+        throw new Error("Flow did not return a final response.");
+    }
+    return finalResponse;
 }
 
 const revealCredentialFlow = ai.defineFlow(
@@ -148,12 +155,19 @@ const revealCredentialFlow = ai.defineFlow(
     }
 );
 
-export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void) {
-    const {stream, response} = revealCredentialFlow(input);
-     for await (const chunk of stream) {
+export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void): Promise<RevealCredentialOutput> {
+    const streamingFlow = revealCredentialFlow(input);
+    let finalResponse: RevealCredentialOutput | undefined;
+     for await (const chunk of streamingFlow) {
         if(chunk.step) {
             onStep(chunk);
+        } else {
+             // The final chunk is the return value of the flow
+            finalResponse = chunk as RevealCredentialOutput;
         }
     }
-    return response;
+    if (!finalResponse) {
+        throw new Error("Flow did not return a final response.");
+    }
+    return finalResponse;
 }
