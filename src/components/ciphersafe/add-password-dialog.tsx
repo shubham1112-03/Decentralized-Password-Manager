@@ -53,34 +53,25 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             password: values.password,
         };
 
-        // We are not using runFlow here as it doesn't support streams correctly in this version
-        // We will call the flow directly and simulate the stream on the client
-        const stream = addCredential(flowInput);
-
-        const steps = [
-          "Deriving encryption key...",
-          "Encrypting password with AES-256...",
-          "Generating Shamir's secret shares...",
-          "Distributing shares to IPFS nodes...",
-          "Generating ZK-Proof of ownership...",
-          "Done!"
-        ];
-
-        for (const step of steps) {
-            setSavingStep(step);
-            await new Promise(resolve => setTimeout(resolve, 800));
-        }
+        const stream = runFlow(addCredential, flowInput, (chunk) => {
+          if (chunk.step) {
+            setSavingStep(chunk.step);
+          }
+        });
         
         const result = await stream;
 
         if (!result) {
-            throw new Error("Flow did not return an encrypted password.");
+            throw new Error("Flow did not return the required credential data.");
         }
 
         const newCredential = {
             service: values.service,
             username: values.username,
             encryptedPassword: result.encryptedPassword,
+            shares: result.shares,
+            zkProof: result.zkProof,
+            publicSignals: result.publicSignals,
         };
 
         onAddCredential(newCredential);
@@ -118,7 +109,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         <DialogHeader>
           <DialogTitle>Add New Credential</DialogTitle>
           <DialogDescription>
-            This will be encrypted and stored securely on decentralized nodes.
+            This will be encrypted, split into shares, and stored securely.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

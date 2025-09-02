@@ -3,5 +3,8 @@ export type Credential = {
   service: string;
   username: string;
   encryptedPassword: string;
-  plaintextPassword: string; // For simulation purposes
+  plaintextPassword?: string; // No longer used for storage, only reveal
+  shares: string[];
+  zkProof: string;
+  publicSignals: string;
 };

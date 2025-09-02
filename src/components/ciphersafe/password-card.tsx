@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { revealCredential } from "@/ai/flows/credential-flow";
 import { runFlow } from "@genkit-ai/next/client";
+import type { RevealCredentialInput } from "@/ai/flows/credential-types";
 
 type PasswordCardProps = {
   credential: Credential;
@@ -44,24 +45,23 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setRevealStep("Initiating...");
 
     try {
-        const stream = revealCredential({
-            masterPassword,
-            encryptedPassword: credential.encryptedPassword
-        });
-
-        const steps = [
-            "Verifying master key proof...",
-            "Fetching secret shares from IPFS...",
-            "Reconstructing secret...",
-            "Deriving decryption key...",
-            "Decrypting with AES-256...",
-            "Done!"
-        ];
-
-        for (const step of steps) {
-            setRevealStep(step);
-            await new Promise(resolve => setTimeout(resolve, 700));
+        if (!credential.shares || !credential.zkProof || !credential.publicSignals) {
+            throw new Error("Credential is missing required cryptographic data. It may have been created with an older version.");
         }
+
+        const flowInput: RevealCredentialInput = {
+            masterPassword,
+            encryptedPassword: credential.encryptedPassword,
+            shares: credential.shares,
+            zkProof: credential.zkProof,
+            publicSignals: credential.publicSignals
+        };
+
+        const stream = runFlow(revealCredential, flowInput, (chunk) => {
+            if (chunk.step) {
+                setRevealStep(chunk.step);
+            }
+        });
 
       const result = await stream;
       if (!result?.plaintextPassword) {
@@ -141,7 +141,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the credential for {credential.service} from decentralized storage.
+                This action cannot be undone. This will permanently delete the credential for {credential.service}.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
