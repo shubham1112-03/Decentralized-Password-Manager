@@ -95,13 +95,13 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void) {
-    const stream = addCredentialFlow(input);
+    const {stream, response} = addCredentialFlow(input);
     for await (const chunk of stream) {
         if(chunk.step) {
             onStep(chunk);
         }
     }
-    return stream.output();
+    return response;
 }
 
 const revealCredentialFlow = ai.defineFlow(
@@ -149,11 +149,11 @@ const revealCredentialFlow = ai.defineFlow(
 );
 
 export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void) {
-    const stream = revealCredentialFlow(input);
+    const {stream, response} = revealCredentialFlow(input);
      for await (const chunk of stream) {
         if(chunk.step) {
             onStep(chunk);
         }
     }
-    return stream.output();
+    return response;
 }
