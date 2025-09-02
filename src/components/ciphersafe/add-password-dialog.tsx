@@ -14,6 +14,8 @@ import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
 import { runFlow } from "@genkit-ai/next/client";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
+import { auth, db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -22,7 +24,7 @@ const formSchema = z.object({
 });
 
 type AddPasswordDialogProps = {
-  onAddCredential: (credential: Omit<Credential, "id" | "plaintextPassword">) => void;
+  onAddCredential: (credential: Omit<Credential, "id" | "plaintextPassword">, docId: string) => void;
   masterPassword: string;
 };
 
@@ -45,6 +47,17 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
     setIsSaving(true);
     setSavingStep("Initiating...");
     
+    const user = auth.currentUser;
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Not Authenticated",
+            description: "You must be logged in to add a password."
+        });
+        setIsSaving(false);
+        return;
+    }
+
     try {
         const flowInput: AddCredentialInput = {
             masterPassword,
@@ -64,8 +77,11 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         if (!result) {
             throw new Error("Flow did not return the required credential data.");
         }
+        
+        setSavingStep("Saving to database...");
 
-        const newCredential = {
+        const newCredentialData = {
+            uid: user.uid,
             service: values.service,
             username: values.username,
             encryptedPassword: result.encryptedPassword,
@@ -74,7 +90,9 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             publicSignals: result.publicSignals,
         };
 
-        onAddCredential(newCredential);
+        const docRef = await addDoc(collection(db, "credentials"), newCredentialData);
+
+        onAddCredential(newCredentialData, docRef.id);
         setIsOpen(false);
 
     } catch (e: any) {
@@ -109,7 +127,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         <DialogHeader>
           <DialogTitle>Add New Credential</DialogTitle>
           <DialogDescription>
-            This will be encrypted, split into shares, and stored securely.
+            This will be encrypted, split into shares, and stored securely in the database.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +14,9 @@ import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
 import { hashPassword, verifyPassword } from "@/ai/flows/crypto-flow";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, User } from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 
 const loginSchema = z.object({
@@ -45,6 +46,7 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
   const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); 
   const [user, setUser] = useState<User | null>(null);
@@ -65,14 +67,15 @@ export default function Auth() {
     defaultValues: { masterPassword: "", confirmMasterPassword: "" },
   });
   
-  useState(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-         // In a real app, you would fetch this from a secure backend (e.g., Firestore)
-        const storedMasterPasswordHash = localStorage.getItem(`masterPasswordHash_${currentUser.uid}`);
-        if (storedMasterPasswordHash) {
-          setMasterPasswordHash(storedMasterPasswordHash);
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists() && userDoc.data().masterPasswordHash) {
+          setMasterPasswordHash(userDoc.data().masterPasswordHash);
           setAuthState("unlock");
         } else {
           setAuthState("createMasterPassword");
@@ -80,6 +83,7 @@ export default function Auth() {
       } else {
         setAuthState("login");
       }
+       setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -88,8 +92,7 @@ export default function Auth() {
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-        setUser(userCredential.user);
+        await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: "Logged In", description: "Welcome back!" });
     } catch (e: any) {
         toast({
@@ -105,8 +108,7 @@ export default function Auth() {
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        setUser(userCredential.user);
+        await createUserWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: "Account Created", description: "Please create your master password." });
     } catch (e: any) {
          toast({
@@ -129,17 +131,18 @@ export default function Auth() {
 
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
-        // In a real app, save this hash to a secure, user-specific location (e.g., Firestore document)
-        localStorage.setItem(`masterPasswordHash_${user.uid}`, hashedPassword);
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, { masterPasswordHash: hashedPassword });
+        
         setMasterPasswordHash(hashedPassword);
         setAuthState("unlock");
         toast({ title: "Master Password Set!", description: "It has been securely hashed. You can now unlock your vault." });
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Could not hash master password. Please try again."
+            description: e.message || "Could not set master password. Please try again."
         });
     } finally {
         setIsLoading(false);
@@ -168,6 +171,13 @@ export default function Auth() {
     }
   }
 
+  if (isAuthLoading) {
+    return (
+        <div className="flex justify-center items-center min-h-[200px]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   if (authState === "dashboard") {
     return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} onLogout={handleLogout} />;
@@ -326,4 +336,3 @@ export default function Auth() {
     </Card>
   );
 }
-    

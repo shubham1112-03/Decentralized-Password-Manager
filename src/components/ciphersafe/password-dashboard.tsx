@@ -1,29 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Credential } from "@/components/ciphersafe/types";
 import { Button } from "@/components/ui/button";
-import { Lock, LogOut } from "lucide-react";
+import { Lock, LogOut, Loader2 } from "lucide-react";
 import AddPasswordDialog from "./add-password-dialog";
 import PasswordCard from "./password-card";
 import { useToast } from "@/hooks/use-toast";
-
-const initialCredentials: Omit<Credential, 'id' | 'plaintextPassword' | 'shares' | 'zkProof' | 'publicSignals'>[] = [
-  // These initial credentials will not work with the new crypto system
-  // as they lack the required shares and ZKP data. They are left here
-  // as placeholders but will throw an error if "reveal" is clicked.
-  // A proper implementation would have a migration path.
-  {
-    service: "GitHub (Legacy)",
-    username: "dev-user",
-    encryptedPassword: "d2d147314e357361733a41a4a62c58a8:64a8a5e78b27376c6c449c256038373b9347517036618d35688a2a95c93d489b9d3113",
-  },
-  {
-    service: "Google (Legacy)",
-    username: "personal.email@gmail.com",
-    encryptedPassword: "97223b207137731a523a518e974579c3:32c8a2b5dd21386d38408f23343a6d368d555c703b688c3535873b95c3",
-  },
-];
+import { auth, db } from "@/lib/firebase";
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, writeBatch } from "firebase/firestore";
 
 type PasswordDashboardProps = {
   onLock: () => void;
@@ -32,25 +17,52 @@ type PasswordDashboardProps = {
 };
 
 export default function PasswordDashboard({ onLock, masterPassword, onLogout }: PasswordDashboardProps) {
-  const [credentials, setCredentials] = useState<Credential[]>(() => initialCredentials.map(c => ({
-      ...c,
-      id: crypto.randomUUID(),
-      shares: [],
-      zkProof: "",
-      publicSignals: ""
-    })));
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const addCredential = (newCredential: Omit<Credential, "id" | "plaintextPassword">) => {
-    setCredentials(prev => [...prev, { ...newCredential, id: crypto.randomUUID() }]);
+  useEffect(() => {
+    const fetchCredentials = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const q = query(collection(db, "credentials"), where("uid", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        const creds: Credential[] = [];
+        querySnapshot.forEach((doc) => {
+          creds.push({ id: doc.id, ...doc.data() } as Credential);
+        });
+        setCredentials(creds);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Failed to load credentials",
+          description: error.message || "Could not fetch data from Firestore."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCredentials();
+  }, [toast]);
+
+
+  const addCredentialToState = (newCredential: Omit<Credential, "id">, docId: string) => {
+    setCredentials(prev => [...prev, { ...newCredential, id: docId }]);
     toast({
         title: "Success!",
         description: `Credential for ${newCredential.service} has been added to your vault.`,
     });
   };
 
-  const deleteCredential = (id: string) => {
+  const deleteCredential = async (id: string) => {
+    const originalCredentials = [...credentials];
     let serviceName = "";
+    
     setCredentials(prev => prev.filter(cred => {
         if(cred.id === id) {
             serviceName = cred.service;
@@ -58,17 +70,28 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
         }
         return true;
     }));
-    toast({
-        variant: "destructive",
-        title: "Credential Deleted",
-        description: `Credential for ${serviceName} has been removed.`,
-    });
+
+    try {
+      await deleteDoc(doc(db, "credentials", id));
+      toast({
+          variant: "destructive",
+          title: "Credential Deleted",
+          description: `Credential for ${serviceName} has been removed.`,
+      });
+    } catch (error: any) {
+      toast({
+          variant: "destructive",
+          title: "Deletion Failed",
+          description: `Could not delete ${serviceName}. Please try again.`
+      });
+      setCredentials(originalCredentials);
+    }
   };
 
   return (
     <div className="w-full">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <AddPasswordDialog onAddCredential={addCredential} masterPassword={masterPassword} />
+        <AddPasswordDialog onAddCredential={addCredentialToState} masterPassword={masterPassword} />
         <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={onLock}>
               <Lock className="mr-2 h-4 w-4" />
@@ -81,7 +104,11 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
         </div>
       </div>
       
-      {credentials.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : credentials.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {credentials.map(cred => (
             <PasswordCard key={cred.id} credential={cred} onDelete={deleteCredential} masterPassword={masterPassword} />
