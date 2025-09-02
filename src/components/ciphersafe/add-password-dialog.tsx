@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { PlusCircle, Loader2 } from "lucide-react";
-import { addCredential } from "@/ai/flows/credential-flow";
+import { addCredentialFlow } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
 import { runFlow } from "@genkit-ai/next/client";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
@@ -66,7 +66,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             password: values.password,
         };
 
-        const stream = runFlow(addCredential, flowInput, (chunk) => {
+        const stream = runFlow(addCredentialFlow, flowInput, (chunk) => {
           if (chunk.step) {
             setSavingStep(chunk.step);
           }

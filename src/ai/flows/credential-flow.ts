@@ -15,11 +15,10 @@ import {
     AddCredentialStreamSchema,
     RevealCredentialStreamSchema
 } from './credential-types';
-import type { AddCredentialInput, RevealCredentialInput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
 import * as snarkjs from 'snarkjs';
-import { hashPassword, verifyPassword } from './crypto-flow';
+import { hashPassword } from './crypto-flow';
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -40,7 +39,7 @@ async function getZkpFiles() {
 }
 
 
-const addCredentialFlow = ai.defineFlow(
+export const addCredentialFlow = ai.defineFlow(
   {
     name: 'addCredentialFlow',
     inputSchema: AddCredentialInputSchema,
@@ -94,12 +93,7 @@ const addCredentialFlow = ai.defineFlow(
   }
 );
 
-export async function addCredential(input: AddCredentialInput) {
-    return addCredentialFlow(input);
-}
-
-
-const revealCredentialFlow = ai.defineFlow(
+export const revealCredentialFlow = ai.defineFlow(
     {
         name: 'revealCredentialFlow',
         inputSchema: RevealCredentialInputSchema,
@@ -142,7 +136,3 @@ const revealCredentialFlow = ai.defineFlow(
         return { plaintextPassword };
     }
 );
-
-export async function revealCredential(input: RevealCredentialInput) {
-    return revealCredentialFlow(input);
-}

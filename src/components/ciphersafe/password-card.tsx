@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { revealCredential } from "@/ai/flows/credential-flow";
+import { revealCredentialFlow } from "@/ai/flows/credential-flow";
 import { runFlow } from "@genkit-ai/next/client";
 import type { RevealCredentialInput } from "@/ai/flows/credential-types";
 
@@ -57,7 +57,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
             publicSignals: credential.publicSignals
         };
 
-        const stream = runFlow(revealCredential, flowInput, (chunk) => {
+        const stream = runFlow(revealCredentialFlow, flowInput, (chunk) => {
             if (chunk.step) {
                 setRevealStep(chunk.step);
             }
