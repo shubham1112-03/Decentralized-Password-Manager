@@ -7,7 +7,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { runFlow } from '@genkit-ai/next/client';
 import { 
     AddCredentialInputSchema, 
     AddCredentialOutputSchema, 
@@ -96,7 +95,7 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput, onStep: (chunk: z.infer<typeof AddCredentialStreamSchema>) => void) {
-    const stream = await runFlow(addCredentialFlow, input);
+    const stream = addCredentialFlow(input);
     for await (const chunk of stream) {
         if(chunk.step) {
             onStep(chunk);
@@ -150,7 +149,7 @@ const revealCredentialFlow = ai.defineFlow(
 );
 
 export async function revealCredential(input: RevealCredentialInput, onStep: (chunk: z.infer<typeof RevealCredentialStreamSchema>) => void) {
-    const stream = await runFlow(revealCredentialFlow, input);
+    const stream = revealCredentialFlow(input);
      for await (const chunk of stream) {
         if(chunk.step) {
             onStep(chunk);
