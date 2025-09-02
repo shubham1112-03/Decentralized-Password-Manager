@@ -73,9 +73,9 @@ const addCredentialFlow = ai.defineFlow(
     // snarkjs requires a hash as a BigInt. We'll hash the master password.
     // In a real scenario, you'd use a more robust pre-image.
     const { hashedPassword } = await hashPassword({ password: input.masterPassword });
-    const a = BigInt(Buffer.from(input.masterPassword).toString('hex'));
-    const b = BigInt(Buffer.from(hashedPassword).toString('hex'));
-
+    const a = BigInt("0x" + Buffer.from(input.masterPassword).toString('hex'));
+    const b = BigInt("0x" + Buffer.from(hashedPassword).toString('hex'));
+    
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
         { a, b }, // The witness
         wasmPath,
@@ -95,13 +95,7 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput) {
-    const { stream, output } = await addCredentialFlow(input);
-    // Note: In a real app, you might handle the stream differently
-    // For this use case, we'll just wait for the final output.
-    for await (const _ of stream) {
-        // Consuming the stream to ensure it runs
-    }
-    return output();
+    return addCredentialFlow(input);
 }
 
 
@@ -150,11 +144,5 @@ const revealCredentialFlow = ai.defineFlow(
 );
 
 export async function revealCredential(input: RevealCredentialInput) {
-    const { stream, output } = await revealCredentialFlow(input);
-     // Note: In a real app, you might handle the stream differently
-    // For this use case, we'll just wait for the final output.
-    for await (const _ of stream) {
-        // Consuming the stream to ensure it runs
-    }
-    return output();
+    return revealCredentialFlow(input);
 }
