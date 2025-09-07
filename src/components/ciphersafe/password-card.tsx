@@ -42,14 +42,13 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     setIsRevealing(true);
 
     try {
-        if (!credential.shares || !credential.zkProof || !credential.publicSignals) {
+        if (!credential.sharesCids || !credential.zkProof || !credential.publicSignals) {
             throw new Error("Credential is missing required cryptographic data. It may have been created with an older version.");
         }
 
         const flowInput: RevealCredentialInput = {
             masterPassword,
-            encryptedPassword: credential.encryptedPassword,
-            shares: credential.shares,
+            sharesCids: credential.sharesCids,
             zkProof: credential.zkProof,
             publicSignals: credential.publicSignals
         };

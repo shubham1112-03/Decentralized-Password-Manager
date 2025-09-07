@@ -16,6 +16,7 @@ import {
 import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, RevealCredentialOutput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
+import { addSharesToIpfs, getSharesFromIpfs } from '@/lib/ipfs';
 
 // Define a helper for simulation delays
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -37,17 +38,16 @@ const addCredentialFlow = ai.defineFlow(
     // 3. Generate Shamir's secret shares from the encrypted password
     const secret = Buffer.from(encryptedPassword, 'utf8');
     const shares = sss.split(secret, { shares: 5, threshold: 3 });
-    const sharesAsHex = shares.map(s => s.toString('hex'));
-
-    // 4. Distribute shares to IPFS nodes (simulation)
-    await sleep(700);
+    
+    // 4. Distribute shares to IPFS nodes
+    const cids = await addSharesToIpfs(shares);
     
     // 5. Generate a Zero-Knowledge Proof of password ownership (simulation)
     await sleep(1200);
 
     return {
-      encryptedPassword, // Keep this for simplicity, though it's now "in" the shares
-      shares: sharesAsHex,
+      encryptedPassword,
+      sharesCids: cids,
       zkProof: JSON.stringify({ "pi_a": ["0", "0"], "pi_b": [["0", "0"], ["0", "0"]], "pi_c": ["0", "0"], "protocol": "groth16" }),
       publicSignals: JSON.stringify(["1"])
     };
@@ -76,10 +76,8 @@ const revealCredentialFlow = ai.defineFlow(
              throw new Error("ZKP verification failed.");
         }
 
-
-        // 2. Fetching secret shares from IPFS (simulation)
-        await sleep(600);
-        const sharesAsBuffers = input.shares.map(s => Buffer.from(s, 'hex'));
+        // 2. Fetching secret shares from IPFS
+        const sharesAsBuffers = await getSharesFromIpfs(input.sharesCids);
 
         // 3. Reconstructing secret from shares
         // We only need the threshold number of shares (e.g., 3 out of 5)
