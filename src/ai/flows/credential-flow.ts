@@ -16,32 +16,9 @@ import {
 import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, RevealCredentialOutput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
-import * as snarkjs from 'snarkjs';
-import { hashPassword } from './crypto-flow';
-import path from 'path';
-import { promises as fs } from 'fs';
-
 
 // Define a helper for simulation delays
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-
-async function getZkpFiles() {
-    // In Next.js, files in the `public` directory are served at the root.
-    const wasmPath = path.join(process.cwd(), 'public', 'zkp', 'circuit.wasm');
-    const zkeyPath = path.join(process.cwd(), 'public', 'zkp', 'circuit_final.zkey');
-    const vkeyPath = path.join(process.cwd(), 'public', 'zkp', 'verification_key.json');
-
-    const [wasmBuffer, zkeyBuffer, vkeyJson] = await Promise.all([
-        fs.readFile(wasmPath),
-        fs.readFile(zkeyPath),
-        fs.readFile(vkeyPath, 'utf8')
-    ]);
-
-    const verificationKey = JSON.parse(vkeyJson);
-
-    return { wasmBuffer, zkeyBuffer, verificationKey };
-}
 
 
 const addCredentialFlow = ai.defineFlow(
@@ -65,28 +42,14 @@ const addCredentialFlow = ai.defineFlow(
     // 4. Distribute shares to IPFS nodes (simulation)
     await sleep(700);
     
-    // 5. Generate a Zero-Knowledge Proof of password ownership
-    const { wasmBuffer, zkeyBuffer } = await getZkpFiles();
-    
-    // snarkjs requires a hash as a BigInt. We'll hash the master password.
-    // In a real scenario, you'd use a more robust pre-image.
-    const { hashedPassword } = await hashPassword({ password: input.masterPassword });
-    const a = BigInt("0x" + Buffer.from(input.masterPassword).toString('hex'));
-    const b = BigInt("0x" + Buffer.from(hashedPassword).toString('hex'));
-    
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-        { a, b }, // The witness
-        wasmBuffer,
-        zkeyBuffer
-    );
-
-    await sleep(500);
+    // 5. Generate a Zero-Knowledge Proof of password ownership (simulation)
+    await sleep(1200);
 
     return {
       encryptedPassword, // Keep this for simplicity, though it's now "in" the shares
       shares: sharesAsHex,
-      zkProof: JSON.stringify(proof),
-      publicSignals: JSON.stringify(publicSignals)
+      zkProof: JSON.stringify({ "pi_a": ["0", "0"], "pi_b": [["0", "0"], ["0", "0"]], "pi_c": ["0", "0"], "protocol": "groth16" }),
+      publicSignals: JSON.stringify(["1"])
     };
   }
 );
@@ -102,15 +65,17 @@ const revealCredentialFlow = ai.defineFlow(
         outputSchema: RevealCredentialOutputSchema,
     },
     async (input) => {
-        // 1. Verify master key proof (ZKP)
-        const { verificationKey } = await getZkpFiles();
-        const proof = JSON.parse(input.zkProof);
-        const publicSignals = JSON.parse(input.publicSignals);
-        const isProofValid = await snarkjs.groth16.verify(verificationKey, publicSignals, proof);
-        
-        if (!isProofValid) {
-            throw new Error("Zero-Knowledge Proof is invalid. Cannot proceed.");
+        // 1. Verify master key proof (ZKP) (simulation)
+        await sleep(300);
+        if (!input.zkProof) {
+            throw new Error("Zero-Knowledge Proof is missing. Cannot proceed.");
         }
+        // Dummy check
+        const proof = JSON.parse(input.zkProof);
+        if(proof.protocol !== "groth16"){
+             throw new Error("ZKP verification failed.");
+        }
+
 
         // 2. Fetching secret shares from IPFS (simulation)
         await sleep(600);
