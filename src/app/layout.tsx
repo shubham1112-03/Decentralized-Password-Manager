@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Store-Safe',
+  title: 'CipherSafe',
   description: 'Decentralized Password Security',
 };
 
