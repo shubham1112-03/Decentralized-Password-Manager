@@ -24,12 +24,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // This is to prevent a build error from a dependency of kubo-rpc-client.
-    // The dependency tries to import 'electron', which is not available in a Next.js environment.
-    config.externals.push('electron');
-    return config;
-  },
 };
 
 module.exports = nextConfig;

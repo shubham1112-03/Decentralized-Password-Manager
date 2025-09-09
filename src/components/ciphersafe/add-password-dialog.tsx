@@ -74,7 +74,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             service: values.service,
             username: values.username,
             encryptedPassword: result.encryptedPassword,
-            sharesCids: result.sharesCids,
+            shares: result.shares,
             zkProof: result.zkProof,
             publicSignals: result.publicSignals,
         };
@@ -115,7 +115,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         <DialogHeader>
           <DialogTitle>Add New Credential</DialogTitle>
           <DialogDescription>
-            This will be encrypted, split into shares, and stored securely on IPFS.
+            This will be encrypted, split into shares, and stored securely.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

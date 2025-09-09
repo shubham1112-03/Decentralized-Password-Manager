@@ -5,7 +5,7 @@ export type Credential = {
   username: string;
   encryptedPassword: string;
   plaintextPassword?: string; // No longer used for storage, only reveal
-  sharesCids: string[];
+  shares: string[];
   zkProof: string;
   publicSignals: string;
 };
