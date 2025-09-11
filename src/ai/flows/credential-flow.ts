@@ -14,7 +14,9 @@ import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, Re
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
 import { addToIpfs, getFromIpfs } from '@/lib/ipfs';
-import { generateProof, verifyProof } from './zkp-flow';
+
+// Helper to simulate async operations
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const addCredentialFlow = ai.defineFlow(
   {
@@ -38,8 +40,9 @@ const addCredentialFlow = ai.defineFlow(
         shares.map(s => addToIpfs(s.toString('hex')))
     );
     
-    // 5. Generate a Zero-Knowledge Proof of password ownership
-    const { proof } = await generateProof({ privateInput: input.masterPassword });
+    // 5. Generate a Zero-Knowledge Proof of password ownership (Simulated)
+    await sleep(1500); // Simulate proof generation time
+    const proof = `simulated-zkp-for-${input.masterPassword.slice(0,5)}`;
 
     return {
       encryptedPassword,
@@ -60,11 +63,12 @@ const revealCredentialFlow = ai.defineFlow(
         outputSchema: RevealCredentialOutputSchema,
     },
     async (input) => {
-        // 1. Verify master key proof (ZKP)
-        const { isVerified } = await verifyProof({ proof: input.zkProof });
-        if (!isVerified) {
+        // 1. Verify master key proof (ZKP) (Simulated)
+        await sleep(200); // Simulate verification time
+        if (!input.zkProof.startsWith('simulated-zkp-for-')) {
             throw new Error("ZKP verification failed. You are not the owner of this credential.");
         }
+
 
         // 2. Fetching secret shares from IPFS
         const sharesAsHex = await Promise.all(
