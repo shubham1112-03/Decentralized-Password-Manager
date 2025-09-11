@@ -1,38 +1,38 @@
-import { createHelia } from 'helia';
-import { strings } from '@helia/strings';
 
-// A single, shared Helia instance
-let helia: any; 
+// This is a simulated IPFS service.
+// In a real-world application, this would be replaced with a
+// functional IPFS client like Helia or Kubo.
 
-async function getHelia() {
-    if (!helia) {
-        helia = await createHelia();
-    }
-    return helia;
-}
+const FAKE_IPFS_DELAY = 100; // ms
+
+// A simple in-memory map to act as our fake IPFS node
+const fakeIpfsStore = new Map<string, string>();
 
 /**
- * Adds a string to IPFS.
+ * Simulates adding a string to IPFS.
  * @param content The string content to add.
- * @returns The IPFS CID as a string.
+ * @returns A fake IPFS CID as a string.
  */
 export async function addToIpfs(content: string): Promise<string> {
-    const heliaNode = await getHelia();
-    const s = strings(heliaNode);
-    const cid = await s.add(content);
-    return cid.toString();
+    await new Promise(resolve => setTimeout(resolve, FAKE_IPFS_DELAY));
+    // Generate a "CID-like" string. In a real scenario, this would be a cryptographic hash.
+    const fakeCid = `sim-cid-${Math.random().toString(36).substring(2, 15)}`;
+    fakeIpfsStore.set(fakeCid, content);
+    console.log(`Simulated IPFS: Added content with CID: ${fakeCid}`);
+    return fakeCid;
 }
 
 /**
- * Retrieves a string from IPFS using its CID.
- * @param cid The IPFS CID string.
+ * Simulates retrieving a string from IPFS using its CID.
+ * @param cid The fake IPFS CID string.
  * @returns The string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    const heliaNode = await getHelia();
-    const s = strings(heliaNode);
-    // The CID might be passed as a string, so we ensure it's a CID object for Helia
-    const { CID } = await import('multiformats/cid');
-    const content = await s.get(CID.parse(cid));
+    await new Promise(resolve => setTimeout(resolve, FAKE_IPFS_DELAY));
+    const content = fakeIpfsStore.get(cid);
+    if (!content) {
+        throw new Error(`Simulated IPFS: CID not found: ${cid}`);
+    }
+    console.log(`Simulated IPFS: Retrieved content for CID: ${cid}`);
     return content;
 }
