@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Credential } from "./types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Eye, EyeOff, Copy, Loader2, Trash2, ShieldQuestion } from "lucide-react";
+import { Eye, EyeOff, Copy, Loader2, Trash2, ShieldQuestion, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -31,22 +31,20 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
   const [isRevealing, setIsRevealing] = useState(false);
   const { toast } = useToast();
 
+  const isLegacyCredential = !credential.sharesCids || !credential.zkProof;
+
   const handleRevealToggle = async () => {
     if (revealedPassword) {
       setRevealedPassword(null);
       return;
     }
 
-    if (isRevealing) return;
+    if (isRevealing || isLegacyCredential) return;
 
     setIsRevealing(true);
     toast({ title: "Revealing Password...", description: "Fetching from IPFS and verifying proof. This may take a moment." });
 
     try {
-        if (!credential.sharesCids || !credential.zkProof) {
-            throw new Error("Credential is missing required cryptographic data (CIDs or ZKP).");
-        }
-
         const flowInput: RevealCredentialInput = {
             masterPassword,
             sharesCids: credential.sharesCids,
@@ -89,7 +87,7 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
       <div>
         <CardHeader className="flex-row items-center gap-4">
             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-secondary">
-            <ShieldQuestion className="h-6 w-6 text-secondary-foreground" />
+            {isLegacyCredential ? <AlertTriangle className="h-6 w-6 text-destructive" /> : <ShieldQuestion className="h-6 w-6 text-secondary-foreground" />}
             </div>
             <div className="min-w-0">
                 <CardTitle className="truncate">{credential.service}</CardTitle>
@@ -111,14 +109,22 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
                             <span className="sr-only">Copy password</span>
                         </Button>
                     </div>
+                ) : isLegacyCredential ? (
+                     <div className="flex items-center text-sm text-destructive">
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Legacy Data
+                    </div>
                 ) : (
                     <span className="font-mono text-2xl tracking-widest text-muted-foreground/50">••••••••••••</span>
                 )}
             </div>
+             {isLegacyCredential && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">This credential was saved in an old format and cannot be revealed. Please delete and re-add it.</p>
+            )}
         </CardContent>
       </div>
       <CardFooter className="grid grid-cols-[1fr,auto] gap-2">
-        <Button variant="outline" onClick={handleRevealToggle} disabled={isRevealing}>
+        <Button variant="outline" onClick={handleRevealToggle} disabled={isRevealing || isLegacyCredential}>
           {isRevealed ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
           {isRevealed ? "Hide" : "Reveal"}
         </Button>
