@@ -40,17 +40,17 @@ export default function PasswordCard({ credential, onDelete, masterPassword }: P
     if (isRevealing) return;
 
     setIsRevealing(true);
+    toast({ title: "Revealing Password...", description: "Fetching from IPFS and verifying proof. This may take a moment." });
 
     try {
-        if (!credential.shares || !credential.zkProof || !credential.publicSignals) {
-            throw new Error("Credential is missing required cryptographic data. It may have been created with an older version.");
+        if (!credential.sharesCids || !credential.zkProof) {
+            throw new Error("Credential is missing required cryptographic data (CIDs or ZKP).");
         }
 
         const flowInput: RevealCredentialInput = {
             masterPassword,
-            shares: credential.shares,
+            sharesCids: credential.sharesCids,
             zkProof: credential.zkProof,
-            publicSignals: credential.publicSignals
         };
 
         const result = await revealCredential(flowInput);

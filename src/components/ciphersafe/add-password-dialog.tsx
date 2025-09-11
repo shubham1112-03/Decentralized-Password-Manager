@@ -23,7 +23,7 @@ const formSchema = z.object({
 });
 
 type AddPasswordDialogProps = {
-  onAddCredential: (credential: Omit<Credential, "id" | "plaintextPassword">, docId: string) => void;
+  onAddCredential: (credential: Omit<Credential, "id">, docId: string) => void;
   masterPassword: string;
 };
 
@@ -62,10 +62,12 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             username: values.username,
             password: values.password,
         };
+        
+        toast({ title: "Saving to Vault...", description: "Encrypting, generating proof, and uploading to IPFS. This may take a moment." });
 
         const result = await addCredential(flowInput);
         
-        if (!result) {
+        if (!result || !result.sharesCids || !result.zkProof) {
             throw new Error("Flow did not return the required credential data.");
         }
 
@@ -74,9 +76,8 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             service: values.service,
             username: values.username,
             encryptedPassword: result.encryptedPassword,
-            shares: result.shares,
+            sharesCids: result.sharesCids,
             zkProof: result.zkProof,
-            publicSignals: result.publicSignals,
         };
 
         const docRef = await addDoc(collection(db, "credentials"), newCredentialData);
@@ -115,7 +116,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         <DialogHeader>
           <DialogTitle>Add New Credential</DialogTitle>
           <DialogDescription>
-            This will be encrypted, split into shares, and stored securely.
+            This will be encrypted, split into shares, and stored securely on IPFS.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

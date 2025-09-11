@@ -12,9 +12,8 @@ export type AddCredentialInput = z.infer<typeof AddCredentialInputSchema>;
 
 export const AddCredentialOutputSchema = z.object({
     encryptedPassword: z.string().describe("The AES-256 encrypted password, including IV and auth tag."),
-    shares: z.array(z.string()).describe("The Shamir's secret shares as hex strings."),
+    sharesCids: z.array(z.string()).describe("The IPFS CIDs for the Shamir's secret shares."),
     zkProof: z.string().describe("The Zero-Knowledge Proof of master password ownership."),
-    publicSignals: z.string().describe("The public signals for the ZK-Proof."),
 });
 export type AddCredentialOutput = z.infer<typeof AddCredentialOutputSchema>;
 
@@ -23,9 +22,8 @@ export type AddCredentialOutput = z.infer<typeof AddCredentialOutputSchema>;
 
 export const RevealCredentialInputSchema = z.object({
     masterPassword: z.string().describe("The user's master password."),
-    shares: z.array(z.string()).describe("The Shamir's secret shares as hex strings."),
-    zkProof: z.string().describe("The ZK-Proof to verify."),
-    publicSignals: z.string().describe("The public signals for the ZK-Proof."),
+    sharesCids: z.array(z.string()).describe("The IPFS CIDs for the Shamir's secret shares."),
+    zkProof: z.string().describe("The ZK-Proof to verify master password ownership."),
 });
 export type RevealCredentialInput = z.infer<typeof RevealCredentialInputSchema>;
 
