@@ -13,10 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
-import { hashPassword, verifyPassword } from "@/ai/flows/crypto-flow";
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, User } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { hashPassword } from "@/ai/flows/crypto-flow";
+import { supabase } from "@/lib/supabase";
+import type { User, Session } from "@supabase/supabase-js";
 
 
 const loginSchema = z.object({
@@ -68,14 +67,19 @@ export default function Auth() {
   });
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const checkUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
+      
       if (currentUser) {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists() && userDoc.data().masterPasswordHash) {
-          setMasterPasswordHash(userDoc.data().masterPasswordHash);
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('master_password_hash')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (profile && profile.master_password_hash) {
+          setMasterPasswordHash(profile.master_password_hash);
           setAuthState("unlock");
         } else {
           setAuthState("createMasterPassword");
@@ -83,42 +87,60 @@ export default function Auth() {
       } else {
         setAuthState("login");
       }
-       setIsAuthLoading(false);
+      setIsAuthLoading(false);
+    };
+
+    checkUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (!currentUser) {
+            setAuthState("login");
+        } else {
+            checkUser();
+        }
     });
-    return () => unsubscribe();
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    try {
-        await signInWithEmailAndPassword(auth, values.email, values.password);
-        toast({ title: "Logged In", description: "Welcome back!" });
-    } catch (e: any) {
+    const { error } = await supabase.auth.signInWithPassword(values);
+    if (error) {
         toast({
             variant: "destructive",
             title: "Login Failed",
-            description: e.message || "An unexpected error occurred during login. Please try again."
+            description: error.message || "An unexpected error occurred during login. Please try again."
         });
-    } finally {
-        setIsLoading(false);
+    } else {
+        toast({ title: "Logged In", description: "Welcome back!" });
     }
+    setIsLoading(false);
   };
 
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
-    try {
-        await createUserWithEmailAndPassword(auth, values.email, values.password);
-        toast({ title: "Account Created", description: "Please create your master password." });
-    } catch (e: any) {
+    const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password
+    });
+
+    if (error) {
          toast({
             variant: "destructive",
             title: "Sign-up Failed",
-            description: e.message || "An unexpected error occurred during sign-up. Please try again."
+            description: error.message || "An unexpected error occurred during sign-up. Please try again."
         });
-    } finally {
-        setIsLoading(false);
+    } else if (data.user) {
+        toast({ title: "Account Created", description: "Please create your master password." });
+        setAuthState("createMasterPassword");
     }
+    setIsLoading(false);
   };
 
   const handleSetMasterPassword = async (values: z.infer<typeof masterPasswordSchema>) => {
@@ -131,8 +153,11 @@ export default function Auth() {
 
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
-        const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, { masterPasswordHash: hashedPassword });
+        const { error } = await supabase
+            .from('profiles')
+            .upsert({ id: user.id, master_password_hash: hashedPassword, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+
+        if (error) throw error;
         
         setMasterPasswordHash(hashedPassword);
         setAuthState("unlock");
@@ -159,15 +184,15 @@ export default function Auth() {
   }
   
   const handleLogout = async () => {
-    try {
-        await auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if(error){
+        toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
+    } else {
         setUser(null);
         setRawMasterPassword("");
         setMasterPasswordHash("");
         setAuthState("login");
         toast({title: "Logged Out", description: "You have been successfully logged out."});
-    } catch (e) {
-        toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
     }
   }
 

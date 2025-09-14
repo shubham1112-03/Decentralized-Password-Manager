@@ -13,8 +13,7 @@ import { PlusCircle, Loader2 } from "lucide-react";
 import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
-import { auth, db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -44,7 +43,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
     
-    const user = auth.currentUser;
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         toast({
             variant: "destructive",
@@ -72,17 +71,33 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         }
 
         const newCredentialData = {
-            uid: user.uid,
+            user_id: user.id,
             service: values.service,
             username: values.username,
-            encryptedPassword: result.encryptedPassword,
-            sharesCids: result.sharesCids,
-            zkProof: result.zkProof,
+            encrypted_password: result.encryptedPassword,
+            shares_cids: result.sharesCids,
+            zk_proof: result.zkProof,
         };
 
-        const docRef = await addDoc(collection(db, "credentials"), newCredentialData);
+        const { data: insertedData, error } = await supabase
+            .from('credentials')
+            .insert(newCredentialData)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        if (!insertedData) throw new Error("Failed to get inserted credential data.");
+        
+        const returnedCredential = {
+          uid: insertedData.user_id,
+          service: insertedData.service,
+          username: insertedData.username,
+          encryptedPassword: insertedData.encrypted_password,
+          sharesCids: insertedData.shares_cids,
+          zkProof: insertedData.zk_proof
+        };
 
-        onAddCredential(newCredentialData, docRef.id);
+        onAddCredential(returnedCredential, insertedData.id);
         setIsOpen(false);
 
     } catch (e: any) {

@@ -7,8 +7,8 @@ import { Lock, LogOut, Loader2 } from "lucide-react";
 import AddPasswordDialog from "./add-password-dialog";
 import PasswordCard from "./password-card";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where, writeBatch } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
+
 
 type PasswordDashboardProps = {
   onLock: () => void;
@@ -23,24 +23,35 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
 
   useEffect(() => {
     const fetchCredentials = async () => {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setIsLoading(false);
         return;
       }
       try {
-        const q = query(collection(db, "credentials"), where("uid", "==", user.uid));
-        const querySnapshot = await getDocs(q);
-        const creds: Credential[] = [];
-        querySnapshot.forEach((doc) => {
-          creds.push({ id: doc.id, ...doc.data() } as Credential);
-        });
+        const { data, error } = await supabase
+            .from('credentials')
+            .select('*')
+            .eq('user_id', user.id);
+
+        if (error) throw error;
+        
+        const creds: Credential[] = data.map(cred => ({
+            id: cred.id,
+            uid: cred.user_id,
+            service: cred.service,
+            username: cred.username,
+            encryptedPassword: cred.encrypted_password,
+            sharesCids: cred.shares_cids,
+            zkProof: cred.zk_proof
+        }));
+
         setCredentials(creds);
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Failed to load credentials",
-          description: error.message || "Could not fetch data from Firestore."
+          description: error.message || "Could not fetch data from the database."
         });
       } finally {
         setIsLoading(false);
@@ -72,7 +83,8 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
     }));
 
     try {
-      await deleteDoc(doc(db, "credentials", id));
+      const { error } = await supabase.from('credentials').delete().match({ id });
+      if (error) throw error;
       toast({
           variant: "destructive",
           title: "Credential Deleted",
