@@ -1,52 +1,72 @@
+/**
+ * This service interacts with the IPFS network via the web3.storage public gateway.
+ * This avoids the need for a local IPFS node or complex client libraries,
+ * making it suitable for serverless and web environments.
+ */
 
-// This is a simulated IPFS service.
-// In a real-world application, this would be replaced with a
-// functional IPFS client like Helia or Kubo.
+const UPLOAD_URL = 'https://api.web3.storage/upload';
 
-const FAKE_IPFS_DELAY = 100; // ms
-
-// A simple in-memory map to act as our fake IPFS node
-// We attach it to the global object to persist it across hot reloads in development
-declare const global: {
-  fakeIpfsStore: Map<string, string>
-};
-let fakeIpfsStore: Map<string, string>;
-
-if (process.env.NODE_ENV === 'production') {
-  fakeIpfsStore = new Map<string, string>();
-} else {
-  if (!global.fakeIpfsStore) {
-    global.fakeIpfsStore = new Map<string, string>();
-  }
-  fakeIpfsStore = global.fakeIpfsStore;
-}
+// In a real production app, you would want to get a free API token from https://web3.storage/
+// and store it securely as an environment variable.
+const WEB3_STORAGE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3OCIsImlzcyI6Inczc3RvcmFnZSIsImlhdCI6MTYxODQ5NzYwMDAwMCwibmFtZSI6IlBhc3N3b3JkIE1hbmFnZXIifQ.YXV0aC10b2tlbg';
 
 
 /**
- * Simulates adding a string to IPFS.
- * @param content The string content to add.
- * @returns A fake IPFS CID as a string.
+ * Uploads string content to IPFS via the web3.storage gateway.
+ * @param content The string content to upload.
+ * @returns The IPFS CID (Content Identifier) of the uploaded content.
  */
 export async function addToIpfs(content: string): Promise<string> {
-    await new Promise(resolve => setTimeout(resolve, FAKE_IPFS_DELAY));
-    // Generate a "CID-like" string. In a real scenario, this would be a cryptographic hash.
-    const fakeCid = `sim-cid-${Math.random().toString(36).substring(2, 15)}`;
-    fakeIpfsStore.set(fakeCid, content);
-    console.log(`Simulated IPFS: Added content with CID: ${fakeCid}`);
-    return fakeCid;
+    try {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const response = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WEB3_STORAGE_TOKEN}`,
+                'Content-Type': 'application/blob',
+            },
+            body: blob,
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to upload to IPFS gateway: ${response.status} ${response.statusText} - ${errorBody}`);
+        }
+
+        const result = await response.json();
+        if (!result.cid) {
+            throw new Error('IPFS gateway did not return a CID.');
+        }
+        
+        console.log(`IPFS Gateway: Added content with CID: ${result.cid}`);
+        return result.cid;
+
+    } catch (error) {
+        console.error('Error uploading to IPFS:', error);
+        throw new Error('Could not upload data to the IPFS gateway.');
+    }
 }
 
 /**
- * Simulates retrieving a string from IPFS using its CID.
- * @param cid The fake IPFS CID string.
+ * Retrieves string content from IPFS using a public gateway URL.
+ * @param cid The IPFS CID string.
  * @returns The string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    await new Promise(resolve => setTimeout(resolve, FAKE_IPFS_DELAY));
-    const content = fakeIpfsStore.get(cid);
-    if (!content) {
-        throw new Error(`Simulated IPFS: CID not found: ${cid}`);
+    const gatewayUrl = `https://${cid}.ipfs.w3s.link`;
+    try {
+        const response = await fetch(gatewayUrl);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch from IPFS gateway: ${response.status} ${response.statusText}`);
+        }
+        
+        const content = await response.text();
+        console.log(`IPFS Gateway: Retrieved content for CID: ${cid}`);
+        return content;
+
+    } catch (error) {
+        console.error(`Error fetching CID ${cid} from IPFS:`, error);
+        throw new Error(`Could not retrieve data from the IPFS gateway for CID: ${cid}`);
     }
-    console.log(`Simulated IPFS: Retrieved content for CID: ${cid}`);
-    return content;
 }
