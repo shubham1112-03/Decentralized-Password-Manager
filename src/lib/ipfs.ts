@@ -6,7 +6,21 @@
 const FAKE_IPFS_DELAY = 100; // ms
 
 // A simple in-memory map to act as our fake IPFS node
-const fakeIpfsStore = new Map<string, string>();
+// We attach it to the global object to persist it across hot reloads in development
+declare const global: {
+  fakeIpfsStore: Map<string, string>
+};
+let fakeIpfsStore: Map<string, string>;
+
+if (process.env.NODE_ENV === 'production') {
+  fakeIpfsStore = new Map<string, string>();
+} else {
+  if (!global.fakeIpfsStore) {
+    global.fakeIpfsStore = new Map<string, string>();
+  }
+  fakeIpfsStore = global.fakeIpfsStore;
+}
+
 
 /**
  * Simulates adding a string to IPFS.
