@@ -46,7 +46,8 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 const isSupabaseConfigured = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    return url && key && !url.includes("YOUR_SUPABASE_URL_HERE") && !key.includes("YOUR_SUPABASE_ANON_KEY_HERE");
+    // This check is now robust and will correctly identify placeholder values.
+    return !!(url && key && !url.includes("YOUR_SUPABASE_URL") && !key.includes("YOUR_SUPABASE_ANON_KEY"));
 }
 
 export default function Auth() {
