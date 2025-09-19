@@ -7,7 +7,8 @@ import { Lock, LogOut, Loader2 } from "lucide-react";
 import AddPasswordDialog from "./add-password-dialog";
 import PasswordCard from "./password-card";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 
 type PasswordDashboardProps = {
@@ -23,27 +24,23 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
 
   useEffect(() => {
     const fetchCredentials = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) {
         setIsLoading(false);
         return;
       }
       try {
-        const { data, error } = await supabase
-            .from('credentials')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (error) throw error;
+        const q = query(collection(db, "credentials"), where("user_id", "==", user.uid));
+        const querySnapshot = await getDocs(q);
         
-        const creds: Credential[] = data.map(cred => ({
-            id: cred.id,
-            uid: cred.user_id,
-            service: cred.service,
-            username: cred.username,
-            encryptedPassword: cred.encrypted_password,
-            sharesCids: cred.shares_cids,
-            zkProof: cred.zk_proof
+        const creds: Credential[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            uid: doc.data().user_id,
+            service: doc.data().service,
+            username: doc.data().username,
+            encryptedPassword: doc.data().encryptedPassword,
+            sharesCids: doc.data().sharesCids,
+            zkProof: doc.data().zkProof
         }));
 
         setCredentials(creds);
@@ -62,8 +59,8 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
   }, [toast]);
 
 
-  const addCredentialToState = (newCredential: Omit<Credential, "id">, docId: string) => {
-    setCredentials(prev => [...prev, { ...newCredential, id: docId }]);
+  const addCredentialToState = (newCredential: Credential) => {
+    setCredentials(prev => [...prev, newCredential]);
     toast({
         title: "Success!",
         description: `Credential for ${newCredential.service} has been added to your vault.`,
@@ -83,8 +80,7 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
     }));
 
     try {
-      const { error } = await supabase.from('credentials').delete().match({ id });
-      if (error) throw error;
+      await deleteDoc(doc(db, "credentials", id));
       toast({
           variant: "destructive",
           title: "Credential Deleted",

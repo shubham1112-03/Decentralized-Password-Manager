@@ -13,7 +13,9 @@ import { PlusCircle, Loader2 } from "lucide-react";
 import { addCredential } from "@/ai/flows/credential-flow";
 import { useToast } from "@/hooks/use-toast";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
-import { supabase } from "@/lib/supabase";
+import { auth, db } from "@/lib/firebase";
+import { addDoc, collection } from "firebase/firestore";
+
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required."),
@@ -22,7 +24,7 @@ const formSchema = z.object({
 });
 
 type AddPasswordDialogProps = {
-  onAddCredential: (credential: Omit<Credential, "id">, docId: string) => void;
+  onAddCredential: (credential: Credential) => void;
   masterPassword: string;
 };
 
@@ -43,7 +45,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = auth.currentUser;
     if (!user) {
         toast({
             variant: "destructive",
@@ -71,33 +73,27 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         }
 
         const newCredentialData = {
-            user_id: user.id,
+            user_id: user.uid,
             service: values.service,
             username: values.username,
-            encrypted_password: result.encryptedPassword,
-            shares_cids: result.sharesCids,
-            zk_proof: result.zkProof,
+            encryptedPassword: result.encryptedPassword,
+            sharesCids: result.sharesCids,
+            zkProof: result.zkProof,
         };
 
-        const { data: insertedData, error } = await supabase
-            .from('credentials')
-            .insert(newCredentialData)
-            .select()
-            .single();
+        const docRef = await addDoc(collection(db, "credentials"), newCredentialData);
         
-        if (error) throw error;
-        if (!insertedData) throw new Error("Failed to get inserted credential data.");
-        
-        const returnedCredential = {
-          uid: insertedData.user_id,
-          service: insertedData.service,
-          username: insertedData.username,
-          encryptedPassword: insertedData.encrypted_password,
-          sharesCids: insertedData.shares_cids,
-          zkProof: insertedData.zk_proof
+        const returnedCredential: Credential = {
+          id: docRef.id,
+          uid: newCredentialData.user_id,
+          service: newCredentialData.service,
+          username: newCredentialData.username,
+          encryptedPassword: newCredentialData.encryptedPassword,
+          sharesCids: newCredentialData.sharesCids,
+          zkProof: newCredentialData.zkProof
         };
 
-        onAddCredential(returnedCredential, insertedData.id);
+        onAddCredential(returnedCredential);
         setIsOpen(false);
 
     } catch (e: any) {

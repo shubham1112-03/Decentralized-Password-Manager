@@ -8,14 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, KeyRound } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UnlockForm from "./unlock-form";
 import PasswordDashboard from "./password-dashboard";
 import { useToast } from "@/hooks/use-toast";
 import { hashPassword } from "@/ai/flows/crypto-flow";
-import { supabase } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import type { User } from "firebase/auth";
 
 
 const loginSchema = z.object({
@@ -42,15 +43,6 @@ const masterPasswordSchema = z.object({
 
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
-// Helper function to check if Supabase is configured by inspecting the client's URL.
-const isSupabaseConfigured = () => {
-    // This function checks if the Supabase client is configured with placeholder values.
-    // It's a client-side safe way to check for configuration.
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    return url && !url.includes('YOUR_SUPABASE_URL') && key && !key.includes('YOUR_SUPABASE_ANON_KEY');
-};
-
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
@@ -76,113 +68,87 @@ export default function Auth() {
   });
   
   useEffect(() => {
-    const checkUser = async () => {
-      // Guard against running auth checks if Supabase is not configured
-      if (!isSupabaseConfigured()) {
-          setIsAuthLoading(false);
-          setAuthState("login"); // Stay on the login page to show the config message
-          return;
-      }
-      
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-      
-      if (currentUser) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('master_password_hash')
-          .eq('id', currentUser.id)
-          .single();
-        
-        if (profile && profile.master_password_hash) {
-          setMasterPasswordHash(profile.master_password_hash);
-          setAuthState("unlock");
-        } else {
-          setAuthState("createMasterPassword");
-        }
-      } else {
-        setAuthState("login");
-      }
-      setIsAuthLoading(false);
-    };
-
-    checkUser();
-
-    // Only set up the auth listener if Supabase is configured
-    if (isSupabaseConfigured()) {
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            if (!currentUser) {
-                setAuthState("login");
-            } else {
-                // Re-check profile status on login
-                checkUser();
-            }
-        });
-
-        return () => {
-          authListener?.subscription.unsubscribe();
-        };
-    } else {
+    if (!isFirebaseConfigured()) {
         setIsAuthLoading(false);
+        setAuthState("login");
+        return;
     }
+
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) {
+            const profileRef = doc(db, "profiles", currentUser.uid);
+            const profileSnap = await getDoc(profileRef);
+
+            if (profileSnap.exists() && profileSnap.data().master_password_hash) {
+                setMasterPasswordHash(profileSnap.data().master_password_hash);
+                setAuthState("unlock");
+            } else {
+                setAuthState("createMasterPassword");
+            }
+        } else {
+            setAuthState("login");
+        }
+        setIsAuthLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    // Guard against login attempts if not configured
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
         toast({
             variant: "destructive",
             title: "App Not Configured",
-            description: "Please provide Supabase credentials in your .env file to log in.",
+            description: "Please provide Firebase credentials in a .env.local file to log in.",
         });
         setIsLoading(false);
         return;
     }
-    const { error } = await supabase.auth.signInWithPassword(values);
-    if (error) {
+    try {
+        await auth.signInWithEmailAndPassword(values.email, values.password);
+        toast({ title: "Logged In", description: "Welcome back!" });
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Login Failed",
             description: error.message || "An unexpected error occurred during login. Please try again."
         });
-    } else {
-        toast({ title: "Logged In", description: "Welcome back!" });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
-    // Guard against sign-up attempts if not configured
-     if (!isSupabaseConfigured()) {
+     if (!isFirebaseConfigured()) {
         toast({
             variant: "destructive",
             title: "App Not Configured",
-            description: "Please provide Supabase credentials in your .env file to sign up.",
+            description: "Please provide Firebase credentials in a .env.local file to sign up.",
         });
         setIsLoading(false);
         return;
     }
-    const { data, error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password
-    });
-
-    if (error) {
+    try {
+        const userCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        if (userCredential.user) {
+            const profileRef = doc(db, "profiles", userCredential.user.uid);
+            await setDoc(profileRef, { id: userCredential.user.uid, updated_at: new Date().toISOString() });
+            toast({ title: "Account Created", description: "Please create your master password." });
+            setAuthState("createMasterPassword");
+        }
+    } catch (error: any) {
          toast({
             variant: "destructive",
             title: "Sign-up Failed",
             description: error.message || "An unexpected error occurred during sign-up. Please try again."
         });
-    } else if (data.user) {
-        toast({ title: "Account Created", description: "Please create your master password." });
-        setAuthState("createMasterPassword");
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleSetMasterPassword = async (values: z.infer<typeof masterPasswordSchema>) => {
@@ -195,11 +161,8 @@ export default function Auth() {
 
     try {
         const { hashedPassword } = await hashPassword({ password: values.masterPassword });
-        const { error } = await supabase
-            .from('profiles')
-            .upsert({ id: user.id, master_password_hash: hashedPassword, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-
-        if (error) throw error;
+        const profileRef = doc(db, "profiles", user.uid);
+        await setDoc(profileRef, { master_password_hash: hashedPassword, updated_at: new Date().toISOString() }, { merge: true });
         
         setMasterPasswordHash(hashedPassword);
         setAuthState("unlock");
@@ -226,22 +189,22 @@ export default function Auth() {
   }
   
   const handleLogout = async () => {
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
         setUser(null);
         setRawMasterPassword("");
         setMasterPasswordHash("");
         setAuthState("login");
         return;
     }
-    const { error } = await supabase.auth.signOut();
-    if(error){
-        toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
-    } else {
+    try {
+        await auth.signOut();
         setUser(null);
         setRawMasterPassword("");
         setMasterPasswordHash("");
         setAuthState("login");
         toast({title: "Logged Out", description: "You have been successfully logged out."});
+    } catch(error: any){
+        toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
     }
   }
 
@@ -253,21 +216,25 @@ export default function Auth() {
     );
   }
 
-  // Display configuration message if Supabase is not configured.
-  if (!isSupabaseConfigured()) {
+  if (!isFirebaseConfigured()) {
     return (
         <Card className="mx-auto max-w-md">
             <CardHeader>
                 <CardTitle>Configuration Needed</CardTitle>
                 <CardDescription>
-                    This application is not yet configured. Please add your Supabase URL and Anon Key to a <code>.env</code> file.
+                    This application is not yet configured. Please add your Firebase project credentials to a <code>.env.local</code> file.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="mt-4 rounded-md border bg-muted p-4 text-sm text-muted-foreground">
-                    <p>Create a <code>.env</code> file in the root of your project and add the following:</p>
+                    <p>Create a <code>.env.local</code> file in the root of your project and add your Firebase config:</p>
                     <pre className="mt-2 text-xs">
-                        {`NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL\nNEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY`}
+{`NEXT_PUBLIC_FIREBASE_API_KEY=YOUR_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID=YOUR_APP_ID`}
                     </pre>
                 </div>
             </CardContent>
@@ -432,4 +399,3 @@ export default function Auth() {
     </Card>
   );
 }
-    
