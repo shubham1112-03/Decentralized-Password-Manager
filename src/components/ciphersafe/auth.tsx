@@ -42,13 +42,18 @@ const masterPasswordSchema = z.object({
 
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
-// Helper function to check if Supabase is configured
+// Helper function to check if Supabase is configured by inspecting the client's URL.
 const isSupabaseConfigured = () => {
     // This function checks if the Supabase client is configured with placeholder values.
     // It's a client-side safe way to check for configuration.
-    const supabaseUrl = supabase.realtime.channel('any').conn?.channel.conn.ws.url;
-    return supabaseUrl && !supabaseUrl.includes("YOUR_SUPABASE_URL");
-}
+    // The key is checked for 'placeholder.supabase.co' because the URL might be a valid format but still a placeholder.
+    return (
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder.supabase.co') &&
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder-anon-key')
+    );
+};
 
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
@@ -76,11 +81,13 @@ export default function Auth() {
   
   useEffect(() => {
     const checkUser = async () => {
+      // Guard against running auth checks if Supabase is not configured
       if (!isSupabaseConfigured()) {
           setIsAuthLoading(false);
-          setAuthState("login");
+          setAuthState("login"); // Stay on the login page to show the config message
           return;
       }
+      
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
       
@@ -103,32 +110,33 @@ export default function Auth() {
       setIsAuthLoading(false);
     };
 
+    checkUser();
+
+    // Only set up the auth listener if Supabase is configured
     if (isSupabaseConfigured()) {
-        checkUser();
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (!currentUser) {
+                setAuthState("login");
+            } else {
+                // Re-check profile status on login
+                checkUser();
+            }
+        });
+
+        return () => {
+          authListener?.subscription.unsubscribe();
+        };
     } else {
         setIsAuthLoading(false);
     }
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (!currentUser) {
-            setAuthState("login");
-        } else {
-            if (isSupabaseConfigured()) {
-                checkUser();
-            }
-        }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
   }, []);
 
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
+    // Guard against login attempts if not configured
     if (!isSupabaseConfigured()) {
         toast({
             variant: "destructive",
@@ -153,6 +161,7 @@ export default function Auth() {
 
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
+    // Guard against sign-up attempts if not configured
      if (!isSupabaseConfigured()) {
         toast({
             variant: "destructive",
@@ -221,6 +230,13 @@ export default function Auth() {
   }
   
   const handleLogout = async () => {
+    if (!isSupabaseConfigured()) {
+        setUser(null);
+        setRawMasterPassword("");
+        setMasterPasswordHash("");
+        setAuthState("login");
+        return;
+    }
     const { error } = await supabase.auth.signOut();
     if(error){
         toast({variant: "destructive", title: "Logout Failed", description: "Could not log out. Please try again."});
@@ -241,13 +257,14 @@ export default function Auth() {
     );
   }
 
+  // Display configuration message if Supabase is not configured.
   if (!isSupabaseConfigured()) {
     return (
         <Card className="mx-auto max-w-md">
             <CardHeader>
                 <CardTitle>Configuration Needed</CardTitle>
                 <CardDescription>
-                    This application is not yet configured. Please add your Supabase URL and Anon Key to the <code>.env</code> file.
+                    This application is not yet configured. Please add your Supabase URL and Anon Key to a <code>.env</code> file.
                 </CardDescription>
             </CardHeader>
             <CardContent>
