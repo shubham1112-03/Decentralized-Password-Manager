@@ -44,10 +44,11 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
 // Helper function to check if Supabase is configured
 const isSupabaseConfigured = () => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     // Check if the variables exist and are not the placeholder values
-    return !!(url && key && !url.includes("YOUR_SUPABASE_URL") && !key.includes("YOUR_SUPABASE_ANON_KEY"));
+    return (
+        !supabase.realtime.channel('any').conn?.accessToken.includes("YOUR_SUPABASE_ANON_KEY") &&
+        !supabase.realtime.channel('any').conn?.channel.conn.ws.url.includes("YOUR_SUPABASE_URL")
+    );
 }
 
 export default function Auth() {
@@ -415,5 +416,7 @@ export default function Auth() {
     </Card>
   );
 }
+
+    
 
     
