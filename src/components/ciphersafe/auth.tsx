@@ -44,11 +44,10 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
 // Helper function to check if Supabase is configured
 const isSupabaseConfigured = () => {
-    // Check if the variables exist and are not the placeholder values
-    return (
-        !supabase.realtime.channel('any').conn?.accessToken.includes("YOUR_SUPABASE_ANON_KEY") &&
-        !supabase.realtime.channel('any').conn?.channel.conn.ws.url.includes("YOUR_SUPABASE_URL")
-    );
+    // This function checks if the Supabase client is configured with placeholder values.
+    // It's a client-side safe way to check for configuration.
+    const supabaseUrl = supabase.realtime.channel('any').conn?.channel.conn.ws.url;
+    return supabaseUrl && !supabaseUrl.includes("YOUR_SUPABASE_URL");
 }
 
 export default function Auth() {
@@ -104,7 +103,11 @@ export default function Auth() {
       setIsAuthLoading(false);
     };
 
-    checkUser();
+    if (isSupabaseConfigured()) {
+        checkUser();
+    } else {
+        setIsAuthLoading(false);
+    }
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
         const currentUser = session?.user ?? null;
@@ -416,7 +419,4 @@ export default function Auth() {
     </Card>
   );
 }
-
-    
-
     
