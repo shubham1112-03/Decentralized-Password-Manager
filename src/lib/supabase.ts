@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Use a valid placeholder URL to prevent crashes during build and server-side rendering.
 // This allows the app to load and display a configuration-needed message.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
 if (supabaseUrl.includes("placeholder.supabase.co") || supabaseAnonKey.includes("placeholder-anon-key")) {
     console.warn("--- SUPABASE CONFIGURATION WARNING ---");
