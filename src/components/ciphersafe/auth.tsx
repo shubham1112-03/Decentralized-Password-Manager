@@ -17,6 +17,7 @@ import { hashPassword } from "@/ai/flows/crypto-flow";
 import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 
 const loginSchema = z.object({
@@ -68,7 +69,7 @@ export default function Auth() {
   });
   
   useEffect(() => {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth || !db) {
         setIsAuthLoading(false);
         setAuthState("login");
         return;
@@ -98,7 +99,7 @@ export default function Auth() {
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth) {
         toast({
             variant: "destructive",
             title: "App Not Configured",
@@ -108,7 +109,7 @@ export default function Auth() {
         return;
     }
     try {
-        await auth.signInWithEmailAndPassword(values.email, values.password);
+        await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: "Logged In", description: "Welcome back!" });
     } catch (error: any) {
         toast({
@@ -123,7 +124,7 @@ export default function Auth() {
 
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
-     if (!isFirebaseConfigured()) {
+     if (!isFirebaseConfigured() || !auth || !db) {
         toast({
             variant: "destructive",
             title: "App Not Configured",
@@ -133,7 +134,7 @@ export default function Auth() {
         return;
     }
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         if (userCredential.user) {
             const profileRef = doc(db, "profiles", userCredential.user.uid);
             await setDoc(profileRef, { id: userCredential.user.uid, updated_at: new Date().toISOString() });
@@ -153,7 +154,7 @@ export default function Auth() {
 
   const handleSetMasterPassword = async (values: z.infer<typeof masterPasswordSchema>) => {
     setIsLoading(true);
-    if (!user) {
+    if (!user || !db) {
         toast({ variant: "destructive", title: "Error", description: "You must be logged in to set a master password."});
         setIsLoading(false);
         return;
@@ -189,7 +190,7 @@ export default function Auth() {
   }
   
   const handleLogout = async () => {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth) {
         setUser(null);
         setRawMasterPassword("");
         setMasterPasswordHash("");
@@ -197,7 +198,7 @@ export default function Auth() {
         return;
     }
     try {
-        await auth.signOut();
+        await signOut(auth);
         setUser(null);
         setRawMasterPassword("");
         setMasterPasswordHash("");
@@ -399,3 +400,5 @@ NEXT_PUBLIC_FIREBASE_APP_ID=YOUR_APP_ID`}
     </Card>
   );
 }
+
+    

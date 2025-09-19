@@ -45,6 +45,16 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
     
+    if (!auth || !db) {
+        toast({
+            variant: "destructive",
+            title: "App Not Configured",
+            description: "Firebase is not configured. Please check your environment variables."
+        });
+        setIsSaving(false);
+        return;
+    }
+    
     const user = auth.currentUser;
     if (!user) {
         toast({

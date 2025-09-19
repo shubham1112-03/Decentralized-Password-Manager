@@ -24,6 +24,11 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
 
   useEffect(() => {
     const fetchCredentials = async () => {
+      if (!auth || !db) {
+        setIsLoading(false);
+        return;
+      }
+
       const user = auth.currentUser;
       if (!user) {
         setIsLoading(false);
@@ -68,6 +73,7 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
   };
 
   const deleteCredential = async (id: string) => {
+    if (!db) return;
     const originalCredentials = [...credentials];
     let serviceName = "";
     
