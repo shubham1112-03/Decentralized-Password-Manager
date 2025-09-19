@@ -76,7 +76,6 @@ export default function Auth() {
   
   useEffect(() => {
     const checkUser = async () => {
-      // Don't run any auth logic if Supabase isn't configured
       if (!isSupabaseConfigured()) {
           setIsAuthLoading(false);
           setAuthState("login");
@@ -112,7 +111,6 @@ export default function Auth() {
         if (!currentUser) {
             setAuthState("login");
         } else {
-            // Re-check user state on auth change only if Supabase is configured
             if (isSupabaseConfigured()) {
                 checkUser();
             }
@@ -239,7 +237,6 @@ export default function Auth() {
     );
   }
 
-  // If Supabase is not configured, show a helpful message and block the rest of the UI.
   if (!isSupabaseConfigured()) {
     return (
         <Card className="mx-auto max-w-md">
@@ -378,7 +375,7 @@ export default function Auth() {
                                             <Input placeholder="new-user@example.com" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </Item>
+                                    </FormItem>
                                 )}
                             />
                             <FormField
@@ -391,7 +388,7 @@ export default function Auth() {
                                             <Input type="password" placeholder="••••••••••••" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </Item>
+                                    </FormItem>
                                 )}
                             />
                              <FormField
@@ -404,7 +401,7 @@ export default function Auth() {
                                             <Input type="password" placeholder="••••••••••••" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </Item>
+                                    </FormItem>
                                 )}
                             />
                             <Button type="submit" className="w-full" disabled={isLoading}>
@@ -418,3 +415,5 @@ export default function Auth() {
     </Card>
   );
 }
+
+    
