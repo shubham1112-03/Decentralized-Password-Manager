@@ -46,7 +46,7 @@ type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 const isSupabaseConfigured = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    // This check is now robust and will correctly identify placeholder values.
+    // Check if the variables exist and are not the placeholder values
     return !!(url && key && !url.includes("YOUR_SUPABASE_URL") && !key.includes("YOUR_SUPABASE_ANON_KEY"));
 }
 
@@ -76,6 +76,7 @@ export default function Auth() {
   
   useEffect(() => {
     const checkUser = async () => {
+      // Don't run any auth logic if Supabase isn't configured
       if (!isSupabaseConfigured()) {
           setIsAuthLoading(false);
           setAuthState("login");
@@ -111,7 +112,7 @@ export default function Auth() {
         if (!currentUser) {
             setAuthState("login");
         } else {
-            // Re-check user state on auth change if Supabase is configured
+            // Re-check user state on auth change only if Supabase is configured
             if (isSupabaseConfigured()) {
                 checkUser();
             }
@@ -238,6 +239,28 @@ export default function Auth() {
     );
   }
 
+  // If Supabase is not configured, show a helpful message and block the rest of the UI.
+  if (!isSupabaseConfigured()) {
+    return (
+        <Card className="mx-auto max-w-md">
+            <CardHeader>
+                <CardTitle>Configuration Needed</CardTitle>
+                <CardDescription>
+                    This application is not yet configured. Please add your Supabase URL and Anon Key to the <code>.env</code> file.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="mt-4 rounded-md border bg-muted p-4 text-sm text-muted-foreground">
+                    <p>Create a <code>.env</code> file in the root of your project and add the following:</p>
+                    <pre className="mt-2 text-xs">
+                        {`NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL\nNEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY`}
+                    </pre>
+                </div>
+            </CardContent>
+        </Card>
+    );
+  }
+
   if (authState === "dashboard") {
     return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} onLogout={handleLogout} />;
   }
@@ -292,7 +315,7 @@ export default function Auth() {
                 <Button variant="link" onClick={handleLogout} className="w-full">Logout</Button>
             </CardFooter>
         </Card>
-    )
+    );
   }
 
   return (
@@ -355,7 +378,7 @@ export default function Auth() {
                                             <Input placeholder="new-user@example.com" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </FormItem>
+                                    </Item>
                                 )}
                             />
                             <FormField
@@ -368,7 +391,7 @@ export default function Auth() {
                                             <Input type="password" placeholder="••••••••••••" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </FormItem>
+                                    </Item>
                                 )}
                             />
                              <FormField
@@ -381,7 +404,7 @@ export default function Auth() {
                                             <Input type="password" placeholder="••••••••••••" {...field} />
                                         </FormControl>
                                         <FormMessage />
-                                    </FormItem>
+                                    </Item>
                                 )}
                             />
                             <Button type="submit" className="w-full" disabled={isLoading}>
