@@ -42,6 +42,13 @@ const masterPasswordSchema = z.object({
 
 type AuthState = "login" | "createMasterPassword" | "unlock" | "dashboard";
 
+// Helper function to check if Supabase is configured
+const isSupabaseConfigured = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    return url && key && !url.includes("YOUR_SUPABASE_URL_HERE") && !key.includes("YOUR_SUPABASE_ANON_KEY_HERE");
+}
+
 export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +75,11 @@ export default function Auth() {
   
   useEffect(() => {
     const checkUser = async () => {
+      if (!isSupabaseConfigured()) {
+          setIsAuthLoading(false);
+          setAuthState("login");
+          return;
+      }
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
       
@@ -98,7 +110,10 @@ export default function Auth() {
         if (!currentUser) {
             setAuthState("login");
         } else {
-            checkUser();
+            // Re-check user state on auth change if Supabase is configured
+            if (isSupabaseConfigured()) {
+                checkUser();
+            }
         }
     });
 
@@ -110,6 +125,15 @@ export default function Auth() {
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
+    if (!isSupabaseConfigured()) {
+        toast({
+            variant: "destructive",
+            title: "App Not Configured",
+            description: "Please provide Supabase credentials in your .env file to log in.",
+        });
+        setIsLoading(false);
+        return;
+    }
     const { error } = await supabase.auth.signInWithPassword(values);
     if (error) {
         toast({
@@ -125,6 +149,15 @@ export default function Auth() {
 
   const handleSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
+     if (!isSupabaseConfigured()) {
+        toast({
+            variant: "destructive",
+            title: "App Not Configured",
+            description: "Please provide Supabase credentials in your .env file to sign up.",
+        });
+        setIsLoading(false);
+        return;
+    }
     const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password
