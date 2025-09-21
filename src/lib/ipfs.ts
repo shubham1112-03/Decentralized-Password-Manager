@@ -1,31 +1,27 @@
 /**
- * This service interacts with the IPFS network via the web3.storage public gateway.
- * This avoids the need for a local IPFS node or complex client libraries,
+ * This service interacts with the IPFS network via a public gateway.
+ * This avoids the need for a local IPFS node or API keys,
  * making it suitable for serverless and web environments.
  */
 
-const UPLOAD_URL = 'https://api.web3.storage/upload';
-
-// In a real production app, you would want to get a free API token from https://web3.storage/
-// and store it securely as an environment variable.
-const WEB3_STORAGE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3OCIsImlzcyI6Inczc3RvcmFnZSIsImlhdCI6MTYxODQ5NzYwMDAwMCwibmFtZSI6IlBhc3N3b3JkIE1hbmFnZXIifQ.YXV0aC10b2tlbg';
+const GATEWAY_URL = 'https://ipfs-gateway.publicnode.com';
 
 
 /**
- * Uploads string content to IPFS via the web3.storage gateway.
+ * Uploads string content to IPFS via the public gateway.
  * @param content The string content to upload.
  * @returns The IPFS CID (Content Identifier) of the uploaded content.
  */
 export async function addToIpfs(content: string): Promise<string> {
     try {
+        const formData = new FormData();
         const blob = new Blob([content], { type: 'text/plain' });
-        const response = await fetch(UPLOAD_URL, {
+        formData.append('file', blob);
+
+        // The public gateway's API expects a multipart/form-data upload
+        const response = await fetch(`${GATEWAY_URL}/api/v0/add`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${WEB3_STORAGE_TOKEN}`,
-                'Content-Type': 'application/blob',
-            },
-            body: blob,
+            body: formData,
         });
 
         if (!response.ok) {
@@ -34,12 +30,12 @@ export async function addToIpfs(content: string): Promise<string> {
         }
 
         const result = await response.json();
-        if (!result.cid) {
-            throw new Error('IPFS gateway did not return a CID.');
+        if (!result.Hash) {
+            throw new Error('IPFS gateway did not return a Hash (CID).');
         }
         
-        console.log(`IPFS Gateway: Added content with CID: ${result.cid}`);
-        return result.cid;
+        console.log(`IPFS Gateway: Added content with CID: ${result.Hash}`);
+        return result.Hash;
 
     } catch (error) {
         console.error('Error uploading to IPFS:', error);
@@ -53,7 +49,7 @@ export async function addToIpfs(content: string): Promise<string> {
  * @returns The string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    const gatewayUrl = `https://${cid}.ipfs.w3s.link`;
+    const gatewayUrl = `${GATEWAY_URL}/ipfs/${cid}`;
     try {
         const response = await fetch(gatewayUrl);
         
