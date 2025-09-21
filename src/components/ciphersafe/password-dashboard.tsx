@@ -24,6 +24,7 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
 
   useEffect(() => {
     const fetchCredentials = async () => {
+      setIsLoading(true);
       if (!auth || !db) {
         setIsLoading(false);
         return;
