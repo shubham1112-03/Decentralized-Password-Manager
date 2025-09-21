@@ -1,64 +1,67 @@
 /**
- * This service interacts with the IPFS network via a public gateway.
- * This avoids the need for a local IPFS node or API keys,
- * making it suitable for serverless and web environments.
+ * This service interacts with the IPFS network via web3.storage.
+ * It requires an API token from web3.storage.
  */
+import { Web3Storage } from 'web3.storage';
 
-const GATEWAY_URL = 'https://ipfs-gateway.publicnode.com';
+function getAccessToken() {
+    return process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN;
+}
 
+export function isIpfsConfigured(): boolean {
+    const token = getAccessToken();
+    return !!token && token !== 'YOUR_WEB3_STORAGE_TOKEN';
+}
+
+function makeStorageClient(): Web3Storage {
+    return new Web3Storage({ token: getAccessToken() as string });
+}
 
 /**
- * Uploads string content to IPFS via the public gateway.
+ * Uploads string content to IPFS via web3.storage.
  * @param content The string content to upload.
  * @returns The IPFS CID (Content Identifier) of the uploaded content.
  */
 export async function addToIpfs(content: string): Promise<string> {
+    if (!isIpfsConfigured()) {
+        throw new Error("web3.storage API token is not configured. Please add NEXT_PUBLIC_WEB3_STORAGE_TOKEN to your .env.local file.");
+    }
     try {
-        const formData = new FormData();
         const blob = new Blob([content], { type: 'text/plain' });
-        formData.append('file', blob);
+        const file = new File([blob], 'secret.txt', { type: 'text/plain' });
+        
+        const client = makeStorageClient();
+        const cid = await client.put([file], { wrapWithDirectory: false });
 
-        // The public gateway's API expects a multipart/form-data upload
-        const response = await fetch(`${GATEWAY_URL}/api/v0/add`, {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Failed to upload to IPFS gateway: ${response.status} ${response.statusText} - ${errorBody}`);
-        }
-
-        const result = await response.json();
-        if (!result.Hash) {
-            throw new Error('IPFS gateway did not return a Hash (CID).');
+        if (!cid) {
+            throw new Error('web3.storage did not return a CID.');
         }
         
-        console.log(`IPFS Gateway: Added content with CID: ${result.Hash}`);
-        return result.Hash;
+        console.log(`web3.storage: Added content with CID: ${cid}`);
+        return cid;
 
     } catch (error) {
-        console.error('Error uploading to IPFS:', error);
-        throw new Error('Could not upload data to the IPFS gateway.');
+        console.error('Error uploading to web3.storage:', error);
+        throw new Error('Could not upload data to the IPFS gateway via web3.storage.');
     }
 }
 
 /**
- * Retrieves string content from IPFS using a public gateway URL.
+ * Retrieves string content from IPFS using a web3.storage gateway URL.
  * @param cid The IPFS CID string.
  * @returns The string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    const gatewayUrl = `${GATEWAY_URL}/ipfs/${cid}`;
+    const gatewayUrl = `https://${cid}.ipfs.w3s.link`;
     try {
         const response = await fetch(gatewayUrl);
         
         if (!response.ok) {
-            throw new Error(`Failed to fetch from IPFS gateway: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch from web3.storage gateway: ${response.status} ${response.statusText}`);
         }
         
         const content = await response.text();
-        console.log(`IPFS Gateway: Retrieved content for CID: ${cid}`);
+        console.log(`web3.storage: Retrieved content for CID: ${cid}`);
         return content;
 
     } catch (error) {

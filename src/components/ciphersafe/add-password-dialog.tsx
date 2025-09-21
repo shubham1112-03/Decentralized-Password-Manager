@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { AddCredentialInput } from "@/ai/flows/credential-types";
 import { auth, db } from "@/lib/firebase";
 import { addDoc, collection } from "firebase/firestore";
+import { isIpfsConfigured } from "@/lib/ipfs";
 
 
 const formSchema = z.object({
@@ -50,6 +51,16 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             variant: "destructive",
             title: "App Not Configured",
             description: "Firebase is not configured. Please check your environment variables."
+        });
+        setIsSaving(false);
+        return;
+    }
+
+    if (!isIpfsConfigured()) {
+        toast({
+            variant: "destructive",
+            title: "IPFS Not Configured",
+            description: "Please add your NEXT_PUBLIC_WEB3_STORAGE_TOKEN to the .env.local file."
         });
         setIsSaving(false);
         return;
