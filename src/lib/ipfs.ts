@@ -1,71 +1,51 @@
 /**
- * This service interacts with the IPFS network via web3.storage.
- * It requires an API token from web3.storage.
+ * This service simulates interaction with the IPFS network.
+ * It does not require an API token and does not upload to a real network.
  */
-import { Web3Storage } from 'web3.storage';
 
-function getAccessToken() {
-    return process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN;
-}
+// A simple check to see if we are in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
+/**
+ * Returns true, as the simulated service is always "configured".
+ */
 export function isIpfsConfigured(): boolean {
-    const token = getAccessToken();
-    return !!token && token !== 'YOUR_WEB3_STORAGE_TOKEN';
-}
-
-function makeStorageClient(): Web3Storage {
-    return new Web3Storage({ token: getAccessToken() as string });
+    return true;
 }
 
 /**
- * Uploads string content to IPFS via web3.storage.
- * @param content The string content to upload.
- * @returns The IPFS CID (Content Identifier) of the uploaded content.
+ * Simulates uploading string content to IPFS.
+ * It returns a "fake" CID that encodes the content directly.
+ * @param content The string content to "upload".
+ * @returns A base64-encoded string representing the content, prefixed with 'fake-cid-'.
  */
 export async function addToIpfs(content: string): Promise<string> {
-    if (!isIpfsConfigured()) {
-        throw new Error("web3.storage API token is not configured. Please add NEXT_PUBLIC_WEB3_STORAGE_TOKEN to your .env.local file.");
+    if (!isBrowser) {
+        // In Node.js (or during server-side rendering), use Buffer
+        const encodedContent = Buffer.from(content).toString('base64');
+        return `fake-cid-${encodedContent}`;
     }
-    try {
-        const blob = new Blob([content], { type: 'text/plain' });
-        const file = new File([blob], 'secret.txt', { type: 'text/plain' });
-        
-        const client = makeStorageClient();
-        const cid = await client.put([file], { wrapWithDirectory: false });
-
-        if (!cid) {
-            throw new Error('web3.storage did not return a CID.');
-        }
-        
-        console.log(`web3.storage: Added content with CID: ${cid}`);
-        return cid;
-
-    } catch (error) {
-        console.error('Error uploading to web3.storage:', error);
-        throw new Error('Could not upload data to the IPFS gateway via web3.storage.');
-    }
+    // In the browser, use btoa
+    const encodedContent = btoa(content);
+    return `fake-cid-${encodedContent}`;
 }
 
 /**
- * Retrieves string content from IPFS using a web3.storage gateway URL.
- * @param cid The IPFS CID string.
- * @returns The string content.
+ * Simulates retrieving string content from IPFS.
+ * It decodes the content directly from the "fake" CID.
+ * @param cid The "fake" IPFS CID string.
+ * @returns The original string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    const gatewayUrl = `https://${cid}.ipfs.w3s.link`;
-    try {
-        const response = await fetch(gatewayUrl);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch from web3.storage gateway: ${response.status} ${response.statusText}`);
-        }
-        
-        const content = await response.text();
-        console.log(`web3.storage: Retrieved content for CID: ${cid}`);
-        return content;
-
-    } catch (error) {
-        console.error(`Error fetching CID ${cid} from IPFS:`, error);
-        throw new Error(`Could not retrieve data from the IPFS gateway for CID: ${cid}`);
+    if (!cid.startsWith('fake-cid-')) {
+        throw new Error('Invalid fake CID format. This service only handles simulated CIDs.');
     }
+    const encodedContent = cid.substring('fake-cid-'.length);
+    
+    if (!isBrowser) {
+        // In Node.js (or during server-side rendering), use Buffer
+        return Buffer.from(encodedContent, 'base64').toString('utf8');
+    }
+    // In the browser, use atob
+    return atob(encodedContent);
 }

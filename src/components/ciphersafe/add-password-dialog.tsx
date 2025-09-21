@@ -60,7 +60,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         toast({
             variant: "destructive",
             title: "IPFS Not Configured",
-            description: "Please add your NEXT_PUBLIC_WEB3_STORAGE_TOKEN to the .env.local file."
+            description: "The IPFS service is not set up correctly."
         });
         setIsSaving(false);
         return;
@@ -85,7 +85,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
             password: values.password,
         };
         
-        toast({ title: "Saving to Vault...", description: "Encrypting, generating proof, and uploading to IPFS. This may take a moment." });
+        toast({ title: "Saving to Vault...", description: "Encrypting, generating proof, and preparing data. This may take a moment." });
 
         const result = await addCredential(flowInput);
         
@@ -148,7 +148,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         <DialogHeader>
           <DialogTitle>Add New Credential</DialogTitle>
           <DialogDescription>
-            This will be encrypted, split into shares, and stored securely on IPFS.
+            This will be encrypted, split into shares, and stored securely.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
