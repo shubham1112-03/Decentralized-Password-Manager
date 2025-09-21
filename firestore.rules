@@ -7,18 +7,28 @@ service cloud.firestore {
       allow read, update, create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Credentials Collection
+    // --- Credentials Collection Rules ---
+
+    // Rule for LIST operations (queries) on the collection.
+    // This allows a user to fetch *only* their own credentials.
+    // The query in the app MUST include `where("user_id", "==", signedInUserId)`
     match /credentials {
-      // Allow users to query for their own credentials.
-      allow list: if request.auth != null && request.query.resource.data.user_id == request.auth.uid;
+      allow list: if request.auth != null && request.query.where.get("user_id") == request.auth.uid;
     }
 
-    // Credentials Documents
-    match /credentials/{documentId} {
-      // Allow users to create, read, and delete their own credential documents.
-      allow read, delete, create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
-      // Allow users to update their own credential documents.
-      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
+    // Rule for individual document GET, CREATE, UPDATE, DELETE operations.
+    match /credentials/{credentialId} {
+      // A user can read their own credential.
+      allow get: if request.auth != null && resource.data.user_id == request.auth.uid;
+
+      // A user can create a new credential if they are the owner.
+      allow create: if request.auth != null && request.resource.data.user_id == request.auth.uid;
+      
+      // A user can delete their own credential.
+      allow delete: if request.auth != null && resource.data.user_id == request.auth.uid;
+
+      // A user can update their own credential. (Currently unused in app, but good practice)
+      allow update: if request.auth != null && resource.data.user_id == request.auth.uid;
     }
   }
 }
