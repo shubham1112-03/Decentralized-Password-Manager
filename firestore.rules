@@ -7,15 +7,9 @@ service cloud.firestore {
       allow read, update, create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Credentials: Allow users to list their own credentials.
-    match /credentials {
-      allow list: if request.auth != null && request.query.resource.data.user_id == request.auth.uid;
-    }
-    
-    // Credentials: Users can only C, R, U, D their own credentials.
+    // Credentials: Users can only manage their own credentials.
     match /credentials/{documentId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.user_id;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow read, update, delete, create: if request.auth != null && request.auth.uid == request.resource.data.user_id || (resource != null && request.auth.uid == resource.data.user_id);
     }
   }
 }
