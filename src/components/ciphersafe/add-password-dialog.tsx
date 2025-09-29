@@ -119,11 +119,21 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
 
     } catch (e: any) {
         console.error(e);
-        toast({
-            variant: "destructive",
-            title: "Error Saving Credential",
-            description: e.message || "Something went wrong while saving your password. Please try again."
-        });
+        const errorMessage = e.message || "Something went wrong while saving your password. Please try again.";
+        
+        if (errorMessage.includes("API undergoing maintenance")) {
+            toast({
+                variant: "destructive",
+                title: "IPFS Service Unavailable",
+                description: "The web3.storage service is temporarily down. Please check status.web3.storage and try again later."
+            });
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Error Saving Credential",
+                description: errorMessage,
+            });
+        }
     } finally {
         setIsSaving(false);
         form.reset();
