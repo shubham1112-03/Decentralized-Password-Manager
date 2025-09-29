@@ -119,13 +119,13 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
 
     } catch (e: any) {
         console.error(e);
-        const errorMessage = e.message || "Something went wrong while saving your password. Please try again.";
+        const errorMessage = e.message || "Something went wrong while saving your password.";
         
-        if (errorMessage.includes("IPFS service is undergoing maintenance")) {
+        if (errorMessage.includes("maintenance")) {
             toast({
                 variant: "destructive",
                 title: "IPFS Service Unavailable",
-                description: "The web3.storage service is temporarily down. Please check status.web3.storage and try again later."
+                description: "The web3.storage service may be temporarily down. Please try again later."
             });
         } else {
              toast({

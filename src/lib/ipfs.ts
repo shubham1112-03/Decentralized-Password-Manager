@@ -34,10 +34,11 @@ export async function addToIpfs(content: string): Promise<string> {
         const cid = await client.put(files, { wrapWithDirectory: false });
         return cid;
     } catch (error: any) {
-        if (error.message && error.message.includes('API undergoing maintenance')) {
+        if (error.message && error.message.includes('maintenance')) {
             throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
         }
-        throw error;
+        console.error("Error uploading to IPFS:", error);
+        throw new Error('Could not upload data to the IPFS network.');
     }
 }
 
@@ -63,9 +64,10 @@ export async function getFromIpfs(cid: string): Promise<string> {
         const file = files[0];
         return file.text();
     } catch (error: any) {
-        if (error.message && error.message.includes('API undergoing maintenance')) {
+        if (error.message && error.message.includes('maintenance')) {
             throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
         }
-        throw error;
+        console.error("Error fetching from IPFS:", error);
+        throw new Error('Could not retrieve data from the IPFS network.');
     }
 }
