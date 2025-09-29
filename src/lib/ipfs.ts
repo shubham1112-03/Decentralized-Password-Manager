@@ -27,11 +27,18 @@ export function isIpfsConfigured(): boolean {
  * @returns A real IPFS CID (Content Identifier) for the uploaded file.
  */
 export async function addToIpfs(content: string): Promise<string> {
-    const client = getClient();
-    const buffer = Buffer.from(content);
-    const files = [new File([buffer], 'secret.json')];
-    const cid = await client.put(files, { wrapWithDirectory: false });
-    return cid;
+    try {
+        const client = getClient();
+        const buffer = Buffer.from(content);
+        const files = [new File([buffer], 'secret.json')];
+        const cid = await client.put(files, { wrapWithDirectory: false });
+        return cid;
+    } catch (error: any) {
+        if (error.message && error.message.includes('API undergoing maintenance')) {
+            throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
+        }
+        throw error;
+    }
 }
 
 /**
@@ -40,18 +47,25 @@ export async function addToIpfs(content: string): Promise<string> {
  * @returns The original string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
-    const client = getClient();
-    const res = await client.get(cid);
+    try {
+        const client = getClient();
+        const res = await client.get(cid);
 
-    if (!res || !res.ok) {
-        throw new Error(`Failed to get file with CID: ${cid}. Status: ${res?.status}`);
+        if (!res || !res.ok) {
+            throw new Error(`Failed to get file with CID: ${cid}. Status: ${res?.status}`);
+        }
+
+        const files = await res.files();
+        if (!files || files.length === 0) {
+            throw new Error(`No files found for CID: ${cid}`);
+        }
+
+        const file = files[0];
+        return file.text();
+    } catch (error: any) {
+        if (error.message && error.message.includes('API undergoing maintenance')) {
+            throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
+        }
+        throw error;
     }
-
-    const files = await res.files();
-    if (!files || files.length === 0) {
-        throw new Error(`No files found for CID: ${cid}`);
-    }
-
-    const file = files[0];
-    return file.text();
 }

@@ -121,7 +121,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         console.error(e);
         const errorMessage = e.message || "Something went wrong while saving your password. Please try again.";
         
-        if (errorMessage.includes("API undergoing maintenance")) {
+        if (errorMessage.includes("IPFS service is undergoing maintenance")) {
             toast({
                 variant: "destructive",
                 title: "IPFS Service Unavailable",
