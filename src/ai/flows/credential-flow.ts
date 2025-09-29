@@ -36,9 +36,8 @@ const addCredentialFlow = ai.defineFlow(
     const shares = sss.split(secret, { shares: 5, threshold: 3 });
 
     // 4. Distribute shares to IPFS nodes
-    const sharesCids = await Promise.all(
-        shares.map(s => addToIpfs({ content: s.toString('hex') }))
-    );
+    const sharesCidsPromises = shares.map(s => addToIpfs({ content: s.toString('hex') }));
+    const sharesCidsResult = await Promise.all(sharesCidsPromises);
     
     // 5. Generate a Zero-Knowledge Proof of password ownership (Simulated)
     await sleep(1500); // Simulate proof generation time
@@ -46,7 +45,7 @@ const addCredentialFlow = ai.defineFlow(
 
     return {
       encryptedPassword,
-      sharesCids,
+      sharesCids: Array.from(sharesCidsResult), // Ensure it's a plain array
       zkProof: proof,
     };
   }
