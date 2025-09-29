@@ -13,7 +13,7 @@ import {
 import type { AddCredentialInput, RevealCredentialInput, AddCredentialOutput, RevealCredentialOutput } from './credential-types';
 import { encrypt, decrypt, getKey } from '@/lib/crypto';
 import * as sss from 'shamirs-secret-sharing-ts';
-import { addToIpfs, getFromIpfs } from '@/lib/ipfs';
+import { addToIpfs, getFromIpfs } from './ipfs-flow';
 
 // Helper to simulate async operations
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -37,7 +37,7 @@ const addCredentialFlow = ai.defineFlow(
 
     // 4. Distribute shares to IPFS nodes
     const sharesCids = await Promise.all(
-        shares.map(s => addToIpfs(s.toString('hex')))
+        shares.map(s => addToIpfs({ content: s.toString('hex') }))
     );
     
     // 5. Generate a Zero-Knowledge Proof of password ownership (Simulated)
@@ -72,7 +72,7 @@ const revealCredentialFlow = ai.defineFlow(
 
         // 2. Fetching secret shares from IPFS
         const sharesAsHex = await Promise.all(
-            input.sharesCids.map(cid => getFromIpfs(cid))
+            input.sharesCids.map(cid => getFromIpfs({ cid }))
         );
         const sharesAsBuffers = sharesAsHex.map(s => Buffer.from(s, 'hex'));
 
