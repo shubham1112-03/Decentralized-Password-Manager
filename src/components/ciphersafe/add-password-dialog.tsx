@@ -60,7 +60,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         toast({
             variant: "destructive",
             title: "IPFS Not Configured",
-            description: "The web3.storage service is not set up correctly. Please add your Token to the .env file."
+            description: "The Infura IPFS service is not set up correctly. Please add your credentials to the .env file."
         });
         setIsSaving(false);
         return;

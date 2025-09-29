@@ -65,9 +65,9 @@ These cloud services are essential for the application to function correctly.
   - **Firestore**: A NoSQL database used to store user profiles and encrypted credential metadata.
 
 - **IPFS Pinning Service**:
-  - The application uses **web3.storage** to pin credential shares to the IPFS network.
-  - An account with `web3.storage` is required.
-  - An **API Token** from `web3.storage` must be provided in the `.env` file for the service to work.
+  - The application uses **Infura** to pin credential shares to the IPFS network.
+  - An account with `Infura` is required.
+  - A **Project ID** and **Project Secret** from Infura must be provided in the `.env` file for the service to work.
 
 ---
 
