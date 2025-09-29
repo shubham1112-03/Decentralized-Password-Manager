@@ -1,73 +1,70 @@
 /**
- * This service handles interaction with the IPFS network via web3.storage.
- * It requires an API token to upload files to the real network.
+ * This service handles interaction with the IPFS network via Pinata.
+ * It requires a Pinata JWT to upload files to the network.
  */
-import { Web3Storage, File } from 'web3.storage';
+import pinataSDK from '@pinata/sdk';
 
-const token = process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN;
+const jwt = process.env.PINATA_JWT;
+let pinata: pinataSDK | null = null;
 
-function getClient() {
-    if (!token || token === 'YOUR_WEB3_STORAGE_API_TOKEN') {
-        throw new Error('web3.storage API token is not configured. Please add NEXT_PUBLIC_WEB3_STORAGE_TOKEN to your .env file.');
-    }
-    return new Web3Storage({ token });
+if (jwt && jwt !== 'YOUR_PINATA_JWT') {
+    pinata = new pinataSDK({ pinataJWTKey: jwt });
 }
 
 /**
- * Checks if the web3.storage token is provided.
+ * Checks if the Pinata JWT is provided.
  * @returns true if the token is present, false otherwise.
  */
 export function isIpfsConfigured(): boolean {
-    return !!token && token !== 'YOUR_WEB3_STORAGE_API_TOKEN';
+    return !!pinata;
 }
 
 /**
- * Uploads string content to IPFS via web3.storage.
+ * Uploads string content to IPFS via Pinata.
  * @param content The string content to upload.
  * @returns A real IPFS CID (Content Identifier) for the uploaded file.
  */
 export async function addToIpfs(content: string): Promise<string> {
+    if (!pinata) {
+        throw new Error('Pinata is not configured. Please add PINATA_JWT to your .env file.');
+    }
+    
     try {
-        const client = getClient();
-        const buffer = Buffer.from(content);
-        const files = [new File([buffer], 'secret.json')];
-        const cid = await client.put(files, { wrapWithDirectory: false });
-        return cid;
+        const result = await pinata.pinJSONToIPFS(JSON.parse(content), {
+            pinataMetadata: {
+                name: `CipherSafe Share - ${new Date().toISOString()}`
+            }
+        });
+        return result.IpfsHash;
     } catch (error: any) {
-        if (error.message && error.message.includes('maintenance')) {
-            throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
-        }
-        console.error("Error uploading to IPFS:", error);
-        throw new Error('Could not upload data to the IPFS network.');
+        console.error("Error uploading to Pinata:", error);
+        throw new Error('Could not upload data to the IPFS network via Pinata.');
     }
 }
 
 /**
- * Retrieves string content from IPFS using the web3.storage gateway.
+ * Retrieves string content from IPFS using a public Pinata gateway.
  * @param cid The IPFS CID string.
  * @returns The original string content.
  */
 export async function getFromIpfs(cid: string): Promise<string> {
+     if (!pinata) {
+        throw new Error('Pinata is not configured.');
+    }
+
     try {
-        const client = getClient();
-        const res = await client.get(cid);
+        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+        const response = await fetch(gatewayUrl);
 
-        if (!res || !res.ok) {
-            throw new Error(`Failed to get file with CID: ${cid}. Status: ${res?.status}`);
+        if (!response.ok) {
+            throw new Error(`Failed to get file with CID: ${cid}. Status: ${response.status}`);
         }
+        
+        const data = await response.json();
+        return JSON.stringify(data);
 
-        const files = await res.files();
-        if (!files || files.length === 0) {
-            throw new Error(`No files found for CID: ${cid}`);
-        }
-
-        const file = files[0];
-        return file.text();
     } catch (error: any) {
-        if (error.message && error.message.includes('maintenance')) {
-            throw new Error('IPFS service is undergoing maintenance. Check https://status.web3.storage for updates.');
-        }
-        console.error("Error fetching from IPFS:", error);
-        throw new Error('Could not retrieve data from the IPFS network.');
+        console.error("Error fetching from Pinata Gateway:", error);
+        throw new Error('Could not retrieve data from the IPFS network via Pinata.');
     }
 }

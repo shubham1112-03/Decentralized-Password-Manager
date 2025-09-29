@@ -106,7 +106,7 @@ export default function Auth() {
         toast({
             variant: "destructive",
             title: "App Not Configured",
-            description: "Please provide Firebase credentials in a .env.local file to log in.",
+            description: "Please provide Firebase credentials in a .env file to log in.",
         });
         setIsLoading(false);
         return;
@@ -131,7 +131,7 @@ export default function Auth() {
         toast({
             variant: "destructive",
             title: "App Not Configured",
-            description: "Please provide Firebase credentials in a .env.local file to sign up.",
+            description: "Please provide Firebase credentials in a .env file to sign up.",
         });
         setIsLoading(false);
         return;
@@ -226,7 +226,7 @@ export default function Auth() {
             <CardHeader>
                 <CardTitle>Configuration Needed</CardTitle>
                 <CardDescription>
-                    This application requires credentials for Firebase and web3.storage.
+                    This application requires credentials for Firebase and Pinata.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -246,10 +246,10 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                  {!isIpfsConfigured() && (
                     <Alert>
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>web3.storage Not Configured</AlertTitle>
+                        <AlertTitle>Pinata Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your free API token to your <code>.env</code> file. You can get one at <a href="https://web3.storage/tokens" target="_blank" rel="noopener noreferrer" className="underline">web3.storage</a>.
-                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`NEXT_PUBLIC_WEB3_STORAGE_TOKEN=...`}</pre>
+                            Add your free JWT token to your <code>.env</code> file. You can get one at <a href="https://app.pinata.cloud/keys" target="_blank" rel="noopener noreferrer" className="underline">Pinata</a>.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`PINATA_JWT=...`}</pre>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -415,5 +415,3 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
     </Card>
   );
 }
-
-    

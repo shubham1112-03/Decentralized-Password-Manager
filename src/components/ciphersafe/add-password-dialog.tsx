@@ -60,7 +60,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         toast({
             variant: "destructive",
             title: "IPFS Not Configured",
-            description: "The IPFS service is not set up correctly."
+            description: "The Pinata service is not set up correctly. Please add your JWT to the .env file."
         });
         setIsSaving(false);
         return;
@@ -121,19 +121,12 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         console.error(e);
         const errorMessage = e.message || "Something went wrong while saving your password.";
         
-        if (errorMessage.includes("maintenance")) {
-            toast({
-                variant: "destructive",
-                title: "IPFS Service Unavailable",
-                description: "The web3.storage service may be temporarily down. Please try again later."
-            });
-        } else {
-             toast({
-                variant: "destructive",
-                title: "Error Saving Credential",
-                description: errorMessage,
-            });
-        }
+        toast({
+            variant: "destructive",
+            title: "Error Saving Credential",
+            description: errorMessage,
+        });
+
     } finally {
         setIsSaving(false);
         form.reset();
