@@ -18,6 +18,9 @@ import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { isIpfsConfigured } from "@/lib/ipfs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 
 const loginSchema = z.object({
@@ -217,27 +220,39 @@ export default function Auth() {
     );
   }
 
-  if (!isFirebaseConfigured()) {
+  if (!isFirebaseConfigured() || !isIpfsConfigured()) {
     return (
         <Card className="mx-auto max-w-md">
             <CardHeader>
                 <CardTitle>Configuration Needed</CardTitle>
                 <CardDescription>
-                    This application is not yet configured. Please add your Firebase project credentials to a <code>.env.local</code> file.
+                    This application requires credentials for Firebase and web3.storage.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="mt-4 rounded-md border bg-muted p-4 text-sm text-muted-foreground">
-                    <p>Create a <code>.env.local</code> file in the root of your project and add your Firebase config:</p>
-                    <pre className="mt-2 text-xs">
-{`NEXT_PUBLIC_FIREBASE_API_KEY=YOUR_API_KEY
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
-NEXT_PUBLIC_FIREBASE_APP_ID=YOUR_APP_ID`}
-                    </pre>
-                </div>
+            <CardContent className="space-y-4">
+                {!isFirebaseConfigured() && (
+                    <Alert>
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Firebase Not Configured</AlertTitle>
+                        <AlertDescription>
+                            Create a <code>.env</code> file and add your Firebase project config.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+...`}</pre>
+                        </AlertDescription>
+                    </Alert>
+                )}
+                 {!isIpfsConfigured() && (
+                    <Alert>
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>web3.storage Not Configured</AlertTitle>
+                        <AlertDescription>
+                            Add your free API token to your <code>.env</code> file. You can get one at <a href="https://web3.storage/tokens" target="_blank" rel="noopener noreferrer" className="underline">web3.storage</a>.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`NEXT_PUBLIC_WEB3_STORAGE_TOKEN=...`}</pre>
+                        </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
         </Card>
     );

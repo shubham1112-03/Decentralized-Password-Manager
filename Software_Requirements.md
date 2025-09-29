@@ -1,4 +1,3 @@
-
 # CipherSafe - Software and Hardware Requirements
 
 This document outlines the software, hardware, and services required to develop, run, and use the CipherSafe application.
@@ -65,8 +64,10 @@ These cloud services are essential for the application to function correctly.
   - **Firebase Authentication**: For user sign-up and login (currently configured for Email & Password).
   - **Firestore**: A NoSQL database used to store user profiles and encrypted credential metadata.
 
-- **IPFS (Simulated)**:
-  - The current implementation **simulates** IPFS and does **not** require an external service or API key. If this were to be changed to a real IPFS pinning service (like `web3.storage`), an API token and account would be required.
+- **IPFS Pinning Service**:
+  - The application uses **web3.storage** to pin credential shares to the IPFS network.
+  - An account with `web3.storage` is required.
+  - An **API Token** from `web3.storage` must be provided in the `.env` file for the service to work.
 
 ---
 
@@ -89,4 +90,4 @@ These are the requirements for an end-user to use the deployed web application.
   - Mozilla Firefox
   - Apple Safari
   - Microsoft Edge
-- **Internet Connection**: Required to connect to Firebase services for authentication and data storage.
+- **Internet Connection**: Required to connect to Firebase services and the IPFS network.
