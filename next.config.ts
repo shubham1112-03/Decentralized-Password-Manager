@@ -24,16 +24,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    // This is to prevent the "Module not found: Can't resolve 'electron'" error.
-    // This can happen when using libraries that have optional electron dependencies.
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      electron: false
-    };
-    
-    return config;
-  }
 };
 
 module.exports = nextConfig;
