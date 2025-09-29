@@ -24,14 +24,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // This is to prevent the "Module not found: Can't resolve 'electron'" error.
-    if (!isServer) {
-        config.resolve.fallback = {
-            ...config.resolve.fallback,
-            electron: false
-        };
-    }
+    // This can happen when using libraries that have optional electron dependencies.
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      electron: false
+    };
+    
     return config;
   }
 };
