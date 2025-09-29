@@ -1,13 +1,21 @@
 'use server';
 /**
- * @fileOverview A server-only flow for interacting with IPFS via Pinata.
- * This flow isolates the Pinata SDK, which is not compatible with client-side execution.
+ * @fileOverview A server-only flow for interacting with IPFS via web3.storage.
+ * This flow isolates the web3.storage SDK, which is not compatible with client-side execution.
  */
 
 import { ai } from '@/ai/genkit';
-import pinataSDK from '@pinata/sdk';
+import { Web3Storage, File } from 'web3.storage';
 import { AddToIpfsInputSchema, AddToIpfsOutputSchema, GetFromIpfsInputSchema, GetFromIpfsOutputSchema } from './ipfs-types';
 import type { AddToIpfsInput, GetFromIpfsInput } from './ipfs-types';
+
+function getWeb3StorageClient() {
+    const token = process.env.WEB3_STORAGE_TOKEN;
+    if (!token || token === 'YOUR_WEB3_STORAGE_TOKEN') {
+        throw new Error('web3.storage is not configured. Please add WEB3_STORAGE_TOKEN to your .env file.');
+    }
+    return new Web3Storage({ token });
+}
 
 const addToIpfsFlow = ai.defineFlow(
   {
@@ -16,30 +24,27 @@ const addToIpfsFlow = ai.defineFlow(
     outputSchema: AddToIpfsOutputSchema,
   },
   async ({ content }) => {
-    const jwt = process.env.PINATA_JWT;
-    if (!jwt || jwt === 'YOUR_PINATA_JWT') {
-      throw new Error('Pinata is not configured. Please add PINATA_JWT to your .env file.');
-    }
-    const pinata = new pinataSDK({ pinataJWTKey: jwt });
-
     try {
-      // Pinata SDK expects an object to pin, so we wrap the content.
-      const result = await pinata.pinJSONToIPFS({ data: content }, {
-        pinataMetadata: {
+      const client = getWeb3StorageClient();
+      const buffer = Buffer.from(content);
+      const files = [new File([buffer], 'share.json')];
+      const cid = await client.put(files, {
           name: `CipherSafe Share - ${new Date().toISOString()}`,
-        },
+          wrapWithDirectory: false,
       });
-      return result.IpfsHash;
+      return cid;
     } catch (error: any) {
-      console.error("Error uploading to Pinata:", error);
-      throw new Error('Could not upload data to the IPFS network via Pinata.');
+      console.error("Error uploading to web3.storage:", error);
+      if (error.message && error.message.includes('maintenance')) {
+        throw new Error('IPFS provider is currently undergoing maintenance. Please try again later.');
+      }
+      throw new Error('Could not upload data to the IPFS network via web3.storage.');
     }
   }
 );
 
 export async function addToIpfs(input: AddToIpfsInput): Promise<string> {
-    const result = await addToIpfsFlow(input);
-    return result;
+    return await addToIpfsFlow(input);
 }
 
 const getFromIpfsFlow = ai.defineFlow(
@@ -50,29 +55,36 @@ const getFromIpfsFlow = ai.defineFlow(
   },
   async ({ cid }) => {
     try {
-      const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
-      const response = await fetch(gatewayUrl);
+      const client = getWeb3StorageClient();
+      const res = await client.get(cid);
 
-      if (!response.ok) {
-        throw new Error(`Failed to get file with CID: ${cid}. Status: ${response.status}`);
+      if (!res || !res.ok) {
+        throw new Error(`Failed to get file with CID: ${cid}. Status: ${res.status}`);
       }
 
-      // We need to get the nested data property from the JSON response.
-      const data = await response.json();
-      if (data && typeof data.data !== 'undefined') {
-        return data.data;
+      const files = await res.files();
+      if (!files || files.length === 0) {
+          throw new Error(`No files found for CID: ${cid}`);
       }
-      // Handle cases where the response might not be what we expect.
-      throw new Error(`Unexpected data format from IPFS for CID: ${cid}`);
+      
+      const file = files[0];
+      const content = await file.text();
+      
+      // The content is a JSON file with a `data` property
+      const parsed = JSON.parse(content);
+      if (parsed && typeof parsed.data !== 'undefined') {
+        return parsed.data;
+      }
+      // Or it could be the raw string if not wrapped
+      return content;
 
     } catch (error: any) {
-      console.error("Error fetching from Pinata Gateway:", error);
-      throw new Error('Could not retrieve data from the IPFS network via Pinata.');
+      console.error("Error fetching from web3.storage:", error);
+      throw new Error('Could not retrieve data from the IPFS network via web3.storage.');
     }
   }
 );
 
 export async function getFromIpfs(input: GetFromIpfsInput): Promise<string> {
-    const result = await getFromIpfsFlow(input);
-    return result;
+    return await getFromIpfsFlow(input);
 }

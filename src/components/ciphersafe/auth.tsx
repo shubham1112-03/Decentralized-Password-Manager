@@ -226,7 +226,7 @@ export default function Auth() {
             <CardHeader>
                 <CardTitle>Configuration Needed</CardTitle>
                 <CardDescription>
-                    This application requires credentials for Firebase and Pinata.
+                    This application requires credentials for Firebase and web3.storage.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -246,10 +246,10 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                  {!isIpfsConfigured() && (
                     <Alert>
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>Pinata Not Configured</AlertTitle>
+                        <AlertTitle>web3.storage Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your free JWT token to your <code>.env</code> file. You can get one at <a href="https://app.pinata.cloud/keys" target="_blank" rel="noopener noreferrer" className="underline">Pinata</a>.
-                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`PINATA_JWT=...`}</pre>
+                            Add your free API token to your <code>.env</code> file. You can get one at <a href="https://web3.storage/tokens" target="_blank" rel="noopener noreferrer" className="underline">web3.storage</a>.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`WEB3_STORAGE_TOKEN=...`}</pre>
                         </AlertDescription>
                     </Alert>
                 )}
