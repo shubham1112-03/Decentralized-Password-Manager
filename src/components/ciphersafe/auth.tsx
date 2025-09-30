@@ -246,10 +246,11 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                  {!isIpfsConfigured() && (
                     <Alert>
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>web3.storage Not Configured</AlertTitle>
+                        <AlertTitle>Pinata Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your free web3.storage API token to your <code>.env</code> file.
-                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">WEB3_STORAGE_TOKEN=...</pre>
+                            Add your Pinata API Key and Secret to your <code>.env</code> file.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`PINATA_API_KEY=...
+PINATA_API_SECRET=...`}</pre>
                         </AlertDescription>
                     </Alert>
                 )}

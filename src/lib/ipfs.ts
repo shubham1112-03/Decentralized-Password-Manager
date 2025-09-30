@@ -1,13 +1,14 @@
 /**
- * This service handles interaction with the IPFS network via web3.storage.
- * It requires a web3.storage API token.
+ * This service handles interaction with the IPFS network via Pinata.
+ * It requires a Pinata JWT.
  */
 
 /**
- * Checks if web3.storage is configured.
+ * Checks if Pinata is configured.
  * @returns true if the token is present, false otherwise.
  */
 export function isIpfsConfigured(): boolean {
-    const token = process.env.WEB3_STORAGE_TOKEN;
-    return !!(token && token !== 'YOUR_TOKEN_HERE');
+    const key = process.env.PINATA_API_KEY;
+    const secret = process.env.PINATA_API_SECRET;
+    return !!(key && secret && key !== 'YOUR_PINATA_API_KEY' && secret !== 'YOUR_PINATA_API_SECRET');
 }

@@ -46,7 +46,7 @@ These are the key technologies installed via the package manager that form the b
 - **Tailwind CSS**: `v3.x` - For styling the user interface.
 - **Shadcn/ui**: A component library built on top of Radix UI and Tailwind CSS.
 - **Genkit**: `v1.x` - The AI framework used to orchestrate the cryptographic backend flows.
-- **Pinata SDK**: `v3.x` - For interacting with the Pinata IPFS pinning service.
+- **Pinata SDK**: `v2.x` - For interacting with the Pinata IPFS pinning service.
 
 ---
 
@@ -68,7 +68,7 @@ These cloud services are essential for the application to function correctly.
 - **IPFS Pinning Service**:
   - The application uses **Pinata** to pin credential shares to the IPFS network.
   - An account with `pinata.cloud` is required.
-  - A **JWT** from Pinata must be provided in the `.env` file for the service to work.
+  - An **API Key** and **API Secret** from Pinata must be provided in the `.env` file for the service to work.
 
 ---
 

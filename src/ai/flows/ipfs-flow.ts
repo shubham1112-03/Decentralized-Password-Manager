@@ -1,18 +1,21 @@
 'use server';
 /**
- * @fileOverview A server-only flow for interacting with IPFS via web3.storage.
+ * @fileOverview A server-only flow for interacting with IPFS via Pinata.
  */
 import { ai } from '@/ai/genkit';
 import { AddToIpfsInputSchema, AddToIpfsOutputSchema, GetFromIpfsInputSchema, GetFromIpfsOutputSchema } from './ipfs-types';
 import type { AddToIpfsInput, GetFromIpfsInput } from './ipfs-types';
-import { Web3Storage } from 'web3.storage';
+import pinataSDK from "@pinata/sdk";
+import { Readable } from "stream";
 
-function getWeb3StorageClient(): Web3Storage {
-    const token = process.env.WEB3_STORAGE_TOKEN;
-    if (!token) {
-        throw new Error('web3.storage is not configured. Please add WEB3_STORAGE_TOKEN to your .env file.');
+function getPinataClient() {
+    const key = process.env.PINATA_API_KEY;
+    const secret = process.env.PINATA_API_SECRET;
+    
+    if (!key || !secret) {
+        throw new Error('Pinata is not configured. Please add PINATA_API_KEY and PINATA_API_SECRET to your .env file.');
     }
-    return new Web3Storage({ token });
+    return new pinataSDK(key, secret);
 }
 
 const addToIpfsFlow = ai.defineFlow(
@@ -23,18 +26,29 @@ const addToIpfsFlow = ai.defineFlow(
   },
   async ({ content }) => {
     try {
-      const client = getWeb3StorageClient();
-      const file = new File([content], 'secret.txt', { type: 'text/plain' });
-      const cid = await client.put([file], { wrapWithDirectory: false });
+      const pinata = getPinataClient();
+      const stream = Readable.from(content);
       
-      if (!cid) {
-        throw new Error('web3.storage did not return a CID.');
+      // The Pinata SDK v2 requires the stream to have a path property.
+      // We can satisfy this by adding a path to the stream object.
+      (stream as any).path = `CipherSafe-Share-${Date.now()}`;
+
+      const options = {
+        pinataMetadata: {
+          name: `CipherSafe-Share-${Date.now()}`,
+        },
+      };
+
+      const result = await pinata.pinFileToIPFS(stream, options);
+      
+      if (!result.IpfsHash) {
+        throw new Error('Pinata did not return a CID (IpfsHash).');
       }
       
-      return cid;
+      return result.IpfsHash;
     } catch (error: any) {
-      console.error("Error uploading to web3.storage:", error);
-      throw new Error('Could not upload data to the IPFS network via web3.storage.');
+      console.error("Error uploading to Pinata:", error);
+      throw new Error('Could not upload data to the IPFS network via Pinata.');
     }
   }
 );
@@ -52,23 +66,18 @@ const getFromIpfsFlow = ai.defineFlow(
   },
   async ({ cid }) => {
     try {
-        const client = getWeb3StorageClient();
-        const res = await client.get(cid);
+        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+        const response = await fetch(gatewayUrl);
 
-        if (!res || !res.ok) {
-            throw new Error(`Failed to fetch from web3.storage. Status: ${res.status}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch from Pinata gateway. Status: ${response.status}`);
         }
         
-        const files = await res.files();
-        if (files.length === 0) {
-            throw new Error('No files found for the given CID.');
-        }
-
-        const content = await files[0].text();
+        const content = await response.text();
         return content;
     } catch (error: any) {
-        console.error("Error fetching from web3.storage:", error);
-        throw new Error('Could not retrieve data from the IPFS network via web3.storage.');
+        console.error("Error fetching from Pinata:", error);
+        throw new Error('Could not retrieve data from the IPFS network via Pinata.');
     }
   }
 );
