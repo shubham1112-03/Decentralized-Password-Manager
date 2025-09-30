@@ -1,29 +1,19 @@
 'use server';
 /**
- * @fileOverview A server-only flow for interacting with IPFS via Infura.
- * This flow isolates the IPFS client, which is not compatible with client-side execution.
+ * @fileOverview A server-only flow for interacting with IPFS via web3.storage.
  */
 import { ai } from '@/ai/genkit';
 import { AddToIpfsInputSchema, AddToIpfsOutputSchema, GetFromIpfsInputSchema, GetFromIpfsOutputSchema } from './ipfs-types';
 import type { AddToIpfsInput, GetFromIpfsInput } from './ipfs-types';
+import { Web3Storage } from 'web3.storage';
 
-const IPFS_API_URL = 'https://ipfs.infura.io:5001/api/v0';
-const IPFS_GATEWAY_URL = 'https://infura-ipfs.io/ipfs';
-
-function getInfuraAuthHeader(): HeadersInit {
-    const projectId = process.env.INFURA_IPFS_PROJECT_ID;
-    const projectSecret = process.env.INFURA_IPFS_PROJECT_SECRET;
-
-    if (!projectId || !projectSecret) {
-        throw new Error('Infura IPFS is not configured. Please add INFURA_IPFS_PROJECT_ID and INFURA_IPFS_PROJECT_SECRET to your .env file.');
+function getWeb3StorageClient(): Web3Storage {
+    const token = process.env.WEB3_STORAGE_TOKEN;
+    if (!token) {
+        throw new Error('web3.storage is not configured. Please add WEB3_STORAGE_TOKEN to your .env file.');
     }
-    
-    const auth = 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64');
-    return {
-        'Authorization': auth,
-    };
+    return new Web3Storage({ token });
 }
-
 
 const addToIpfsFlow = ai.defineFlow(
   {
@@ -33,30 +23,18 @@ const addToIpfsFlow = ai.defineFlow(
   },
   async ({ content }) => {
     try {
-      const formData = new FormData();
-      formData.append('file', new Blob([content], { type: 'text/plain' }));
-
-      const response = await fetch(`${IPFS_API_URL}/add`, {
-        method: 'POST',
-        headers: getInfuraAuthHeader(),
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Error response from Infura:", errorBody);
-        throw new Error(`Failed to upload to Infura IPFS. Status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (!result.Hash) {
-        throw new Error('IPFS add response did not include a hash.');
+      const client = getWeb3StorageClient();
+      const file = new File([content], 'secret.txt', { type: 'text/plain' });
+      const cid = await client.put([file], { wrapWithDirectory: false });
+      
+      if (!cid) {
+        throw new Error('web3.storage did not return a CID.');
       }
       
-      return result.Hash;
+      return cid;
     } catch (error: any) {
-      console.error("Error uploading to Infura IPFS:", error);
-      throw new Error('Could not upload data to the IPFS network via Infura.');
+      console.error("Error uploading to web3.storage:", error);
+      throw new Error('Could not upload data to the IPFS network via web3.storage.');
     }
   }
 );
@@ -74,16 +52,23 @@ const getFromIpfsFlow = ai.defineFlow(
   },
   async ({ cid }) => {
     try {
-        // We can use the public gateway to fetch content, which doesn't require auth.
-        const response = await fetch(`${IPFS_GATEWAY_URL}/${cid}`);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch from Infura IPFS gateway. Status: ${response.status}`);
+        const client = getWeb3StorageClient();
+        const res = await client.get(cid);
+
+        if (!res || !res.ok) {
+            throw new Error(`Failed to fetch from web3.storage. Status: ${res.status}`);
         }
-        const content = await response.text();
+        
+        const files = await res.files();
+        if (files.length === 0) {
+            throw new Error('No files found for the given CID.');
+        }
+
+        const content = await files[0].text();
         return content;
     } catch (error: any) {
-        console.error("Error fetching from Infura IPFS:", error);
-        throw new Error('Could not retrieve data from the IPFS network via Infura.');
+        console.error("Error fetching from web3.storage:", error);
+        throw new Error('Could not retrieve data from the IPFS network via web3.storage.');
     }
   }
 );

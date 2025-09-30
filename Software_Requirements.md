@@ -56,7 +56,7 @@ These cloud services are essential for the application to function correctly.
 ### 3.1. Hardware Requirements (Server)
 
 - The application is designed to be deployed on **Firebase App Hosting**, a serverless platform.
-- As such, there are **no direct hardware requirements** to manage. The underlying server infrastructure (CPU, RAM, networking) is fully managed by Google Cloud based on traffic and the `apphosting.yaml` configuration.
+- As such, there are **no direct hardware requirements** to manage. The underlying server infrastructure (CPU, RAM, networking) is fully managed by Google Cloud based on the `apphosting.yaml` configuration.
 
 ### 3.2. Software & Services
 
@@ -65,9 +65,9 @@ These cloud services are essential for the application to function correctly.
   - **Firestore**: A NoSQL database used to store user profiles and encrypted credential metadata.
 
 - **IPFS Pinning Service**:
-  - The application uses **Infura** to pin credential shares to the IPFS network.
-  - An account with `Infura` is required.
-  - A **Project ID** and **Project Secret** from Infura must be provided in the `.env` file for the service to work.
+  - The application uses **web3.storage** to pin credential shares to the IPFS network.
+  - An account with `web3.storage` is required.
+  - An **API Token** from `web3.storage` must be provided in the `.env` file for the service to work.
 
 ---
 

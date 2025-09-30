@@ -246,11 +246,10 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                  {!isIpfsConfigured() && (
                     <Alert>
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>Infura IPFS Not Configured</AlertTitle>
+                        <AlertTitle>web3.storage Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your free Infura credentials to your <code>.env</code> file.
-                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`INFURA_IPFS_PROJECT_ID=...
-INFURA_IPFS_PROJECT_SECRET=...`}</pre>
+                            Add your free web3.storage API token to your <code>.env</code> file.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">WEB3_STORAGE_TOKEN=...</pre>
                         </AlertDescription>
                     </Alert>
                 )}

@@ -1,14 +1,13 @@
 /**
- * This service handles interaction with the IPFS network via Infura.
- * It requires an Infura Project ID and Project Secret.
+ * This service handles interaction with the IPFS network via web3.storage.
+ * It requires a web3.storage API token.
  */
 
 /**
- * Checks if Infura is configured.
- * @returns true if the credentials are present, false otherwise.
+ * Checks if web3.storage is configured.
+ * @returns true if the token is present, false otherwise.
  */
 export function isIpfsConfigured(): boolean {
-    const projectId = process.env.INFURA_IPFS_PROJECT_ID;
-    const projectSecret = process.env.INFURA_IPFS_PROJECT_SECRET;
-    return !!(projectId && projectSecret && projectId !== 'YOUR_PROJECT_ID' && projectSecret !== 'YOUR_PROJECT_SECRET');
+    const token = process.env.WEB3_STORAGE_TOKEN;
+    return !!(token && token !== 'YOUR_TOKEN_HERE');
 }
