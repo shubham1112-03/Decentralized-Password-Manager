@@ -1,11 +1,11 @@
 /**
  * This service handles interaction with the IPFS network via Pinata.
- * It requires a Pinata JWT.
+ * It requires a Pinata API Key and API Secret.
  */
 
 /**
  * Checks if Pinata is configured.
- * @returns true if the token is present, false otherwise.
+ * @returns true if the credentials are present, false otherwise.
  */
 export function isIpfsConfigured(): boolean {
     const key = process.env.PINATA_API_KEY;
