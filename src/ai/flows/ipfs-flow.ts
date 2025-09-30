@@ -9,11 +9,11 @@ import pinataSDK from "@pinata/sdk";
 import { Readable } from "stream";
 
 function getPinataClient() {
-    const key = process.env.PINATA_API_KEY;
+    const key = process.env.NEXT_PUBLIC_PINATA_API_KEY;
     const secret = process.env.PINATA_API_SECRET;
     
     if (!key || !secret) {
-        throw new Error('Pinata is not configured. Please add PINATA_API_KEY and PINATA_API_SECRET to your .env file.');
+        throw new Error('Pinata is not configured. Please add NEXT_PUBLIC_PINATA_API_KEY and PINATA_API_SECRET to your .env file.');
     }
     return new pinataSDK(key, secret);
 }
