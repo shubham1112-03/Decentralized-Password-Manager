@@ -43,11 +43,14 @@ const addCredentialFlow = ai.defineFlow(
     await sleep(1500); // Simulate proof generation time
     const proof = `simulated-zkp-for-${input.masterPassword.slice(0,5)}`;
 
-    return {
-      encryptedPassword,
+    // Force return of a plain object to prevent serialization errors.
+    const result: AddCredentialOutput = {
+      encryptedPassword: encryptedPassword,
       sharesCids: Array.from(sharesCidsResult),
       zkProof: proof,
     };
+
+    return result;
   }
 );
 
