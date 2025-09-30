@@ -45,7 +45,7 @@ const addCredentialFlow = ai.defineFlow(
 
     return {
       encryptedPassword,
-      sharesCids: sharesCidsResult,
+      sharesCids: Array.from(sharesCidsResult),
       zkProof: proof,
     };
   }
@@ -53,11 +53,8 @@ const addCredentialFlow = ai.defineFlow(
 
 export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
     const result = await addCredentialFlow(input);
-    // Explicitly convert to array to prevent Set serialization error
-    return {
-      ...result,
-      sharesCids: Array.from(result.sharesCids),
-    };
+    // Return the result directly as it is now guaranteed to be serializable
+    return result;
 }
 
 const revealCredentialFlow = ai.defineFlow(
