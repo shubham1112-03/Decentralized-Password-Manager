@@ -45,14 +45,19 @@ const addCredentialFlow = ai.defineFlow(
 
     return {
       encryptedPassword,
-      sharesCids: Array.from(sharesCidsResult), // Ensure it's a plain array
+      sharesCids: sharesCidsResult,
       zkProof: proof,
     };
   }
 );
 
 export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
-    return addCredentialFlow(input);
+    const result = await addCredentialFlow(input);
+    // Explicitly convert to array to prevent Set serialization error
+    return {
+      ...result,
+      sharesCids: Array.from(result.sharesCids),
+    };
 }
 
 const revealCredentialFlow = ai.defineFlow(
