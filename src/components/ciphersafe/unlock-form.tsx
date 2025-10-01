@@ -18,7 +18,7 @@ const formSchema = z.object({
 
 type UnlockFormProps = {
   masterPasswordHash: string;
-  onUnlock: () => void;
+  onUnlock: (masterPassword: string) => void;
 };
 
 export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormProps) {
@@ -55,7 +55,7 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
             return;
         }
 
-        onUnlock();
+        onUnlock(values.masterPassword);
         toast({
             title: "Vault Unlocked",
             description: "Welcome back! Your vault is now accessible.",

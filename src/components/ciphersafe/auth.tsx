@@ -52,6 +52,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); 
+  const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
@@ -182,10 +183,13 @@ export default function Auth() {
     }
   };
   
-  const handleUnlock = () => {
+  const handleUnlock = (masterPassword: string) => {
+    setRawMasterPassword(masterPassword);
     setAuthState("dashboard");
   }
+
   const handleLock = () => {
+    setRawMasterPassword("");
     setAuthState("unlock");
   }
   
@@ -193,6 +197,7 @@ export default function Auth() {
     if (!isFirebaseConfigured() || !auth) {
         setUser(null);
         setMasterPasswordHash("");
+        setRawMasterPassword("");
         setAuthState("login");
         return;
     }
@@ -200,6 +205,7 @@ export default function Auth() {
         await signOut(auth);
         setUser(null);
         setMasterPasswordHash("");
+        setRawMasterPassword("");
         setAuthState("login");
         toast({title: "Logged Out", description: "You have been successfully logged out."});
     } catch(error: any){
@@ -255,7 +261,7 @@ PINATA_API_SECRET=...`}</pre>
   }
 
   if (authState === "dashboard") {
-    return <PasswordDashboard onLock={handleLock} masterPasswordHash={masterPasswordHash} onLogout={handleLogout} />;
+    return <PasswordDashboard onLock={handleLock} rawMasterPassword={rawMasterPassword} onLogout={handleLogout} />;
   }
   
   if (authState === "unlock") {

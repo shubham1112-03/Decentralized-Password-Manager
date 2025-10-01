@@ -19,18 +19,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { revealCredential } from "@/ai/flows/credential-flow";
 import type { RevealCredentialInput } from "@/ai/flows/credential-types";
-import ReAuthDialog from "./re-auth-dialog";
 
 type PasswordCardProps = {
   credential: Credential;
   onDelete: (id: string) => void;
-  masterPasswordHash: string;
+  rawMasterPassword: string;
 };
 
-export default function PasswordCard({ credential, onDelete, masterPasswordHash }: PasswordCardProps) {
+export default function PasswordCard({ credential, onDelete, rawMasterPassword }: PasswordCardProps) {
   const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [isReAuthOpen, setIsReAuthOpen] = useState(false);
   const { toast } = useToast();
 
   const isLegacyCredential = !credential.sharesCids || !credential.zkProof;
@@ -44,12 +42,19 @@ export default function PasswordCard({ credential, onDelete, masterPasswordHash 
     
     if (isLegacyCredential) return;
 
-    // Open the re-auth dialog instead of revealing directly
-    setIsReAuthOpen(true);
+    if (!rawMasterPassword) {
+      toast({
+        variant: "destructive",
+        title: "Master Password Error",
+        description: "Could not retrieve master password. Please lock and unlock the vault.",
+      });
+      return;
+    }
+    
+    handleRevealPassword();
   };
   
-  const handleRevealPassword = async (masterPassword: string) => {
-    setIsReAuthOpen(false); // Close re-auth dialog
+  const handleRevealPassword = async () => {
     if (isRevealing) return;
 
     setIsRevealing(true);
@@ -57,7 +62,7 @@ export default function PasswordCard({ credential, onDelete, masterPasswordHash 
 
     try {
         const flowInput: RevealCredentialInput = {
-            masterPassword,
+            masterPassword: rawMasterPassword,
             sharesCids: credential.sharesCids,
             zkProof: credential.zkProof,
         };
@@ -163,17 +168,6 @@ export default function PasswordCard({ credential, onDelete, masterPasswordHash 
           </AlertDialog>
         </CardFooter>
       </Card>
-
-      <ReAuthDialog 
-        isOpen={isReAuthOpen}
-        onOpenChange={setIsReAuthOpen}
-        onVerified={handleRevealPassword}
-        masterPasswordHash={masterPasswordHash}
-        title="Confirm to Reveal"
-        description="Please enter your master password to decrypt and reveal this credential."
-      />
     </>
   );
 }
-
-    

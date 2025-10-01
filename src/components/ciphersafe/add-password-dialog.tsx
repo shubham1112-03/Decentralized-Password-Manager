@@ -16,7 +16,6 @@ import type { AddCredentialInput } from "@/ai/flows/credential-types";
 import { auth, db } from "@/lib/firebase";
 import { addDoc, collection } from "firebase/firestore";
 import { isIpfsConfigured } from "@/lib/ipfs";
-import ReAuthDialog from "./re-auth-dialog";
 
 
 const formSchema = z.object({
@@ -27,13 +26,12 @@ const formSchema = z.object({
 
 type AddPasswordDialogProps = {
   onAddCredential: (credential: Credential) => void;
-  masterPasswordHash: string;
+  rawMasterPassword: string;
 };
 
-export default function AddPasswordDialog({ onAddCredential, masterPasswordHash }: AddPasswordDialogProps) {
+export default function AddPasswordDialog({ onAddCredential, rawMasterPassword }: AddPasswordDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isReAuthOpen, setIsReAuthOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -56,19 +54,19 @@ export default function AddPasswordDialog({ onAddCredential, masterPasswordHash 
     }
     setIsOpen(true);
   }
-
-  // This function is triggered when the user clicks the initial "Save to Vault" button.
-  // It opens the re-authentication dialog.
-  const handleInitialSubmit = (values: z.infer<typeof formSchema>) => {
-    setIsReAuthOpen(true);
-  };
   
-  // This is the final submit handler, called after the user successfully enters their master password.
-  const onSubmit = async (masterPassword: string) => {
-    setIsReAuthOpen(false); // Close re-auth dialog
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
     
-    const values = form.getValues();
+    if (!rawMasterPassword) {
+        toast({
+            variant: "destructive",
+            title: "Master Password Error",
+            description: "The master password is not available. Please try unlocking the vault again."
+        });
+        setIsSaving(false);
+        return;
+    }
 
     if (!auth || !db) {
         toast({
@@ -93,7 +91,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPasswordHash 
 
     try {
         const flowInput: AddCredentialInput = {
-            masterPassword,
+            masterPassword: rawMasterPassword,
             service: values.service,
             username: values.username,
             password: values.password,
@@ -170,7 +168,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPasswordHash 
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleInitialSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="service"
@@ -226,17 +224,6 @@ export default function AddPasswordDialog({ onAddCredential, masterPasswordHash 
           </Form>
         </DialogContent>
       </Dialog>
-      
-      <ReAuthDialog 
-        isOpen={isReAuthOpen}
-        onOpenChange={setIsReAuthOpen}
-        onVerified={onSubmit}
-        masterPasswordHash={masterPasswordHash}
-        title="Confirm to Save"
-        description="Please enter your master password to encrypt and save this new credential."
-      />
     </>
   );
 }
-
-    
