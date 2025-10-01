@@ -43,7 +43,6 @@ const addCredentialFlow = ai.defineFlow(
     await sleep(1500); // Simulate proof generation time
     const proof = `simulated-zkp-for-${input.masterPassword.slice(0,5)}`;
 
-    // Force return of a plain object to prevent serialization errors.
     const result: AddCredentialOutput = {
       encryptedPassword: encryptedPassword,
       sharesCids: Array.from(sharesCidsResult),
@@ -55,9 +54,17 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
-    const result = await addCredentialFlow(input);
-    // Return the result directly as it is now guaranteed to be serializable
-    return result;
+    const flowResult = await addCredentialFlow(input);
+    
+    // Manually construct a new plain object to ensure serialization.
+    // This is a definitive fix for the "Set objects are not supported" error.
+    const plainResult: AddCredentialOutput = {
+        encryptedPassword: flowResult.encryptedPassword,
+        sharesCids: [...flowResult.sharesCids],
+        zkProof: flowResult.zkProof,
+    };
+    
+    return plainResult;
 }
 
 const revealCredentialFlow = ai.defineFlow(
