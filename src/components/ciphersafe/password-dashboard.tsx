@@ -13,11 +13,11 @@ import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/fire
 
 type PasswordDashboardProps = {
   onLock: () => void;
-  masterPassword: string;
+  masterPasswordHash: string;
   onLogout: () => void;
 };
 
-export default function PasswordDashboard({ onLock, masterPassword, onLogout }: PasswordDashboardProps) {
+export default function PasswordDashboard({ onLock, masterPasswordHash, onLogout }: PasswordDashboardProps) {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -106,7 +106,7 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
   return (
     <div className="w-full">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <AddPasswordDialog onAddCredential={addCredentialToState} masterPassword={masterPassword} />
+        <AddPasswordDialog onAddCredential={addCredentialToState} masterPasswordHash={masterPasswordHash} />
         <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={onLock}>
               <Lock className="mr-2 h-4 w-4" />
@@ -126,7 +126,7 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
       ) : credentials.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {credentials.map(cred => (
-            <PasswordCard key={cred.id} credential={cred} onDelete={deleteCredential} masterPassword={masterPassword} />
+            <PasswordCard key={cred.id} credential={cred} onDelete={deleteCredential} masterPasswordHash={masterPasswordHash} />
           ))}
         </div>
       ) : (
@@ -138,3 +138,5 @@ export default function PasswordDashboard({ onLock, masterPassword, onLogout }: 
     </div>
   );
 }
+
+    

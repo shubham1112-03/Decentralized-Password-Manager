@@ -51,7 +51,6 @@ export default function Auth() {
   const [authState, setAuthState] = useState<AuthState>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [rawMasterPassword, setRawMasterPassword] = useState<string>("");
   const [masterPasswordHash, setMasterPasswordHash] = useState<string>(""); 
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -183,19 +182,16 @@ export default function Auth() {
     }
   };
   
-  const handleUnlock = (verifiedMasterPassword: string) => {
-    setRawMasterPassword(verifiedMasterPassword);
+  const handleUnlock = () => {
     setAuthState("dashboard");
   }
   const handleLock = () => {
-    setRawMasterPassword(""); 
     setAuthState("unlock");
   }
   
   const handleLogout = async () => {
     if (!isFirebaseConfigured() || !auth) {
         setUser(null);
-        setRawMasterPassword("");
         setMasterPasswordHash("");
         setAuthState("login");
         return;
@@ -203,7 +199,6 @@ export default function Auth() {
     try {
         await signOut(auth);
         setUser(null);
-        setRawMasterPassword("");
         setMasterPasswordHash("");
         setAuthState("login");
         toast({title: "Logged Out", description: "You have been successfully logged out."});
@@ -248,7 +243,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                         <Terminal className="h-4 w-4" />
                         <AlertTitle>Pinata Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your Pinata API Key and Secret to your <code>.env</code> file.
+                            Add your Pinata API Key to your <code>.env</code> file.
                             <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`NEXT_PUBLIC_PINATA_API_KEY=...
 PINATA_API_SECRET=...`}</pre>
                         </AlertDescription>
@@ -260,7 +255,7 @@ PINATA_API_SECRET=...`}</pre>
   }
 
   if (authState === "dashboard") {
-    return <PasswordDashboard onLock={handleLock} masterPassword={rawMasterPassword} onLogout={handleLogout} />;
+    return <PasswordDashboard onLock={handleLock} masterPasswordHash={masterPasswordHash} onLogout={handleLogout} />;
   }
   
   if (authState === "unlock") {
@@ -416,3 +411,5 @@ PINATA_API_SECRET=...`}</pre>
     </Card>
   );
 }
+
+    

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,28 +16,37 @@ const formSchema = z.object({
   masterPassword: z.string().min(1, "Master password cannot be empty."),
 });
 
-type UnlockFormProps = {
+type ReAuthDialogProps = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
   masterPasswordHash: string;
-  onUnlock: () => void;
+  onVerified: (masterPassword: string) => void;
+  title: string;
+  description: string;
 };
 
-export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormProps) {
+export default function ReAuthDialog({ isOpen, onOpenChange, masterPasswordHash, onVerified, title, description }: ReAuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      masterPassword: "",
-    },
+    defaultValues: { masterPassword: "" },
   });
+  
+  useEffect(() => {
+    if (!isOpen) {
+        form.reset();
+        setIsLoading(false);
+    }
+  }, [isOpen, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     
     try {
         if (!masterPasswordHash) {
-            throw new Error("Master password hash is not set. Please create a master password first.");
+            throw new Error("Master password hash is not set.");
         }
 
         const { isVerified } = await verifyPassword({
@@ -47,44 +56,43 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
 
         if (!isVerified) {
             toast({
-            variant: "destructive",
-            title: "Invalid Password",
-            description: "The master password you entered is incorrect.",
+              variant: "destructive",
+              title: "Invalid Password",
+              description: "The master password you entered is incorrect.",
             });
             setIsLoading(false);
             return;
         }
-
-        onUnlock();
-        toast({
-            title: "Vault Unlocked",
-            description: "Welcome back! Your vault is now accessible.",
-        });
+        
+        // If verified, call the callback with the master password.
+        // The calling component will then close the dialog.
+        onVerified(values.masterPassword);
 
     } catch (e: any) {
         console.error(e);
         toast({
           variant: "destructive",
           title: "Verification Error",
-          description: e.message || "An error occurred while verifying the password. Please try again.",
+          description: e.message || "An error occurred while verifying the password.",
         });
-    } finally {
         setIsLoading(false);
     }
   };
 
   return (
-    <Card className="mx-auto max-w-md border-primary/20 shadow-lg shadow-primary/5">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <KeyRound className="h-6 w-6 text-primary" />
-          Unlock Your Vault
-        </CardTitle>
-        <CardDescription>Enter your master password to access your vault.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            {title}
+          </DialogTitle>
+          <DialogDescription>
+            {description}
+          </DialogDescription>
+        </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <FormField
               control={form.control}
               name="masterPassword"
@@ -105,12 +113,12 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
                   Verifying...
                 </>
               ) : (
-                "Unlock"
+                "Confirm"
               )}
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -16,6 +16,7 @@ import type { AddCredentialInput } from "@/ai/flows/credential-types";
 import { auth, db } from "@/lib/firebase";
 import { addDoc, collection } from "firebase/firestore";
 import { isIpfsConfigured } from "@/lib/ipfs";
+import ReAuthDialog from "./re-auth-dialog";
 
 
 const formSchema = z.object({
@@ -26,12 +27,13 @@ const formSchema = z.object({
 
 type AddPasswordDialogProps = {
   onAddCredential: (credential: Credential) => void;
-  masterPassword: string;
+  masterPasswordHash: string;
 };
 
-export default function AddPasswordDialog({ onAddCredential, masterPassword }: AddPasswordDialogProps) {
+export default function AddPasswordDialog({ onAddCredential, masterPasswordHash }: AddPasswordDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReAuthOpen, setIsReAuthOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,25 +44,37 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
       password: "",
     },
   });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsSaving(true);
-    
-    if (!auth || !db) {
-        toast({
-            variant: "destructive",
-            title: "App Not Configured",
-            description: "Firebase is not configured. Please check your environment variables."
-        });
-        setIsSaving(false);
-        return;
-    }
-
+  
+  const handleOpenAndCheck = () => {
     if (!isIpfsConfigured()) {
         toast({
             variant: "destructive",
             title: "IPFS Not Configured",
             description: "Pinata is not set up correctly. Please add your NEXT_PUBLIC_PINATA_API_KEY and PINATA_API_SECRET to the .env file."
+        });
+        return;
+    }
+    setIsOpen(true);
+  }
+
+  // This function is triggered when the user clicks the initial "Save to Vault" button.
+  // It opens the re-authentication dialog.
+  const handleInitialSubmit = (values: z.infer<typeof formSchema>) => {
+    setIsReAuthOpen(true);
+  };
+  
+  // This is the final submit handler, called after the user successfully enters their master password.
+  const onSubmit = async (masterPassword: string) => {
+    setIsReAuthOpen(false); // Close re-auth dialog
+    setIsSaving(true);
+    
+    const values = form.getValues();
+
+    if (!auth || !db) {
+        toast({
+            variant: "destructive",
+            title: "App Not Configured",
+            description: "Firebase is not configured. Please check your environment variables."
         });
         setIsSaving(false);
         return;
@@ -115,7 +129,7 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
         };
 
         onAddCredential(returnedCredential);
-        setIsOpen(false);
+        setIsOpen(false); // Close the main dialog
 
     } catch (e: any) {
         console.error(e);
@@ -134,82 +148,95 @@ export default function AddPasswordDialog({ onAddCredential, masterPassword }: A
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) {
-        form.reset();
-        setIsSaving(false);
-      }
-    }}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Password
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add New Credential</DialogTitle>
-          <DialogDescription>
-            This will be encrypted, split into shares, and stored securely.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="service"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service / Website</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Google" {...field} disabled={isSaving} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Username / Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., user@example.com" {...field} disabled={isSaving} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••••••" {...field} disabled={isSaving} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit" className="w-full" disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving to Vault...
-                  </>
-                ) : (
-                  "Save to Vault"
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          form.reset();
+          setIsSaving(false);
+        }
+      }}>
+        <DialogTrigger asChild>
+          <Button onClick={handleOpenAndCheck}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New Password
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Credential</DialogTitle>
+            <DialogDescription>
+              This will be encrypted, split into shares, and stored securely.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleInitialSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="service"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service / Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Google" {...field} disabled={isSaving} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              />
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Username / Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., user@example.com" {...field} disabled={isSaving} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••••••" {...field} disabled={isSaving} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" className="w-full" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving to Vault...
+                    </>
+                  ) : (
+                    "Save to Vault"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      <ReAuthDialog 
+        isOpen={isReAuthOpen}
+        onOpenChange={setIsReAuthOpen}
+        onVerified={onSubmit}
+        masterPasswordHash={masterPasswordHash}
+        title="Confirm to Save"
+        description="Please enter your master password to encrypt and save this new credential."
+      />
+    </>
   );
 }
+
+    
