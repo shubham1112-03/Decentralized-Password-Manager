@@ -279,7 +279,7 @@ PINATA_API_SECRET=...`}</pre>
                                 <FormItem>
                                     <FormLabel>New Master Password</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="••••••••••••••••" {...field} />
+                                        <Input type="password" placeholder="••••••••••••••••" {...field} autoComplete="new-password" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -292,7 +292,7 @@ PINATA_API_SECRET=...`}</pre>
                                 <FormItem>
                                     <FormLabel>Confirm Master Password</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="••••••••••••••••" {...field} />
+                                        <Input type="password" placeholder="••••••••••••••••" {...field} autoComplete="new-password" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -411,5 +411,3 @@ PINATA_API_SECRET=...`}</pre>
     </Card>
   );
 }
-
-    

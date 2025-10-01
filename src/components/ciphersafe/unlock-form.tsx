@@ -92,7 +92,7 @@ export default function UnlockForm({ masterPasswordHash, onUnlock }: UnlockFormP
                 <FormItem>
                   <FormLabel>Master Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••••••" {...field} autoComplete="new-password" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

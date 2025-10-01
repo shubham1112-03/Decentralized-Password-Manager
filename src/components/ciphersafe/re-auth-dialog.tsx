@@ -100,7 +100,7 @@ export default function ReAuthDialog({ isOpen, onOpenChange, masterPasswordHash,
                 <FormItem>
                   <FormLabel>Master Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••••••" {...field} autoComplete="new-password" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
