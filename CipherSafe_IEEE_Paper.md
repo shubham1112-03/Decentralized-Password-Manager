@@ -22,7 +22,7 @@ In an era of increasing digital dependency, secure password management has becom
 
 To address these security concerns, we propose CipherSafe, a decentralized password vault designed with a "zero-trust" philosophy. The core principle of CipherSafe is that no single entity, including the service provider, should have access to user credentials or the ability to decrypt them. By distributing encrypted data across a decentralized network and leveraging modern cryptographic primitives, CipherSafe provides a more resilient and secure alternative to traditional password management solutions.
 
-This paper details the system's architecture, cryptographic protocol, and implementation. We explore the use of Shamir's Secret Sharing for data fragmentation, IPFS for decentralized storage, and Genkit for orchestrating complex backend flows, demonstrating a practical model for building secure, decentralized applications.
+This paper details the system's architecture, cryptographic protocol, and implementation. We explore the use of Shamir's Secret Sharing for data fragmentation, IPFS for decentralized storage, and Genkit for orchestrating complex backend flows, demonstrating a practical model for building secure, decentralized applications.    
 
 ### II. SYSTEM ARCHITECTURE
 
@@ -78,7 +78,7 @@ To reveal a password, the `revealCredentialFlow` executes the reverse process:
 3.  **Reconstruction:** The SSS algorithm combines the shares to reconstruct the original AES-encrypted ciphertext.
 4.  **Decryption:** The user's master password is used to re-derive the AES key, which then decrypts the ciphertext to reveal the plaintext password.
 
-This protocol ensures that even if an attacker gains full access to the Firebase database and the Pinata IPFS account, they would only have access to fragmented, encrypted data shares that are useless without the user's master password.
+This protocol ensures that even if an attacker gains full access to the Firebase database and the Pinata IPFS account, they would only have access to fragmented, encrypted data shares that are useless without the user's master password.    
 
 ### IV. IMPLEMENTATION DETAILS
 
