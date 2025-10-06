@@ -1,4 +1,3 @@
-
 # CipherSafe: A Decentralized, Zero-Knowledge Password Vault Using IPFS and Genkit
 
 **Author:** [Your Name]  
@@ -101,6 +100,10 @@ Future work could focus on several areas of improvement:
 -   **Data Redundancy:** Exploring alternative IPFS pinning services or a multi-service strategy to further decentralize storage and reduce reliance on a single provider like Pinata.
 -   **Mobile Application:** Developing native mobile clients for iOS and Android to extend the platform's reach.
 -   **Browser Extension:** A browser extension would provide auto-fill capabilities, greatly enhancing the user experience.
+
+### ACKNOWLEDGMENT
+
+The author would like to thank Google for the powerful tools and platforms, including Firebase for authentication and database services, and Genkit for AI orchestration, which were instrumental in the development of this project. Gratitude is also extended to the open-source community for providing the cryptographic libraries that form the security backbone of CipherSafe. Finally, a special thanks to [Your Professor/Mentor's Name(s)] for their guidance and support throughout this research.
 
 ### REFERENCES
 
