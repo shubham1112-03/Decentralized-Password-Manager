@@ -249,8 +249,9 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
                         <Terminal className="h-4 w-4" />
                         <AlertTitle>Pinata Not Configured</AlertTitle>
                         <AlertDescription>
-                            Add your Pinata JWT to your <code>.env</code> file.
-                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">PINATA_JWT=...</pre>
+                            Add your Pinata JWT to your <code>.env</code> file, and set the public flag.
+                            <pre className="mt-2 text-xs bg-muted p-2 rounded-md font-mono">{`PINATA_JWT=...
+NEXT_PUBLIC_IPFS_CONFIGURED=true`}</pre>
                         </AlertDescription>
                     </Alert>
                 )}

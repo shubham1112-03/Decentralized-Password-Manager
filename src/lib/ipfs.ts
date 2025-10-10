@@ -4,15 +4,12 @@
  */
 
 /**
- * Checks if Pinata is configured.
- * This check is performed on the client, so it only checks for the public key part of the JWT.
- * A full JWT is not required on the client.
- * @returns true if the credentials are present, false otherwise.
+ * Checks if Pinata is configured on the server by looking for a public flag.
+ * This check is performed on the client. The actual JWT is only ever accessed on the server.
+ * @returns true if the configuration flag is set, false otherwise.
  */
 export function isIpfsConfigured(): boolean {
-    // Client-side check only needs to know if the env var is likely set.
-    // We check for NEXT_PUBLIC_PINATA_GATEWAY_TOKEN, but the real secret is PINATA_JWT on the server.
-    // This is a proxy to know if the developer has configured IPFS.
-    const key = process.env.NEXT_PUBLIC_PINATA_DUMMY_KEY || process.env.PINATA_JWT;
-    return !!key;
+    // Client-side check only looks for a public flag.
+    // The real secret PINATA_JWT is only used on the server.
+    return process.env.NEXT_PUBLIC_IPFS_CONFIGURED === 'true';
 }
