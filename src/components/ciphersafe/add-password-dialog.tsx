@@ -48,7 +48,7 @@ export default function AddPasswordDialog({ onAddCredential, rawMasterPassword }
         toast({
             variant: "destructive",
             title: "IPFS Not Configured",
-            description: "Pinata is not set up correctly. Please add your NEXT_PUBLIC_PINATA_API_KEY and PINATA_API_SECRET to the .env file."
+            description: "Pinata is not set up correctly. Please add your PINATA_JWT to the .env file."
         });
         return;
     }

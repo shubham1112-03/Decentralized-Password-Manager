@@ -68,7 +68,7 @@ These cloud services are essential for the application to function correctly.
 - **IPFS Pinning Service**:
   - The application uses **Pinata** to pin credential shares to the IPFS network.
   - An account with `pinata.cloud` is required.
-  - An **API Key** and **API Secret** from Pinata must be provided in the `.env` file for the service to work.
+  - A **JWT** from Pinata must be provided in the `.env` file for the service to work.
 
 ---
 
