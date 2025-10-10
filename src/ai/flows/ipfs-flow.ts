@@ -66,7 +66,7 @@ const getFromIpfsFlow = ai.defineFlow(
   },
   async ({ cid }) => {
     try {
-        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+        const gatewayUrl = `https://amethyst.pinnie.cloud/ipfs/${cid}`;
         const response = await fetch(gatewayUrl);
 
         if (!response.ok) {
