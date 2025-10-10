@@ -54,17 +54,8 @@ const addCredentialFlow = ai.defineFlow(
 );
 
 export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
-    const flowResult = await addCredentialFlow(input);
-    
-    // Manually construct a new plain object to ensure serialization.
-    // This prevents the "Set objects are not supported" error in Next.js.
-    const plainResult: AddCredentialOutput = {
-        encryptedPassword: flowResult.encryptedPassword,
-        sharesCids: [...flowResult.sharesCids],
-        zkProof: flowResult.zkProof,
-    };
-    
-    return plainResult;
+    // The flow now returns a serializable object, so no conversion is needed here.
+    return addCredentialFlow(input);
 }
 
 const revealCredentialFlow = ai.defineFlow(
