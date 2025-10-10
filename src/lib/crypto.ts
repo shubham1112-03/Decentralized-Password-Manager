@@ -1,3 +1,4 @@
+
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import * as argon2 from 'argon2';
 
@@ -15,11 +16,14 @@ export async function getKey(password: string): Promise<Buffer> {
   // We use a static salt here for simplicity in this project.
   // In a production system, you would generate a unique salt per user and store it with their profile.
   const salt = Buffer.from('ciphersafe-static-salt-for-argon2');
+  
+  // Use raw: true to get a Buffer of the correct hashLength.
   return await argon2.hash(password, {
     type: argon2.argon2id,
     hashLength: KEY_LENGTH,
     salt,
-  }).then(hash => Buffer.from(hash.split('$').pop()!, 'hex'));
+    raw: true, // This is the critical change
+  });
 }
 
 /**
