@@ -31,11 +31,11 @@ const addCredentialFlow = ai.defineFlow(
     // 2. Encrypt password with AES-256
     const encryptedPassword = encrypt(input.password, key);
 
-    // 3. Generate Shamir's secret shares
+    // 3. Generate Shamir's secret shares from the encrypted password
     const secret = Buffer.from(encryptedPassword, 'utf8');
     const shares = sss.split(secret, { shares: 5, threshold: 3 });
 
-    // 4. Distribute shares to IPFS nodes
+    // 4. Distribute shares to IPFS, ensuring they are encoded as hex strings
     const sharesCidsPromises = shares.map(s => addToIpfs({ content: s.toString('hex') }));
     const sharesCidsResult = await Promise.all(sharesCidsPromises);
     
@@ -57,7 +57,6 @@ export async function addCredential(input: AddCredentialInput): Promise<AddCrede
     const flowResult = await addCredentialFlow(input);
     
     // Manually construct a new plain object to ensure serialization.
-    // This is a definitive fix for the "Set objects are not supported" error.
     const plainResult: AddCredentialOutput = {
         encryptedPassword: flowResult.encryptedPassword,
         sharesCids: [...flowResult.sharesCids],
@@ -80,15 +79,15 @@ const revealCredentialFlow = ai.defineFlow(
             throw new Error("ZKP verification failed. You are not the owner of this credential.");
         }
 
-
-        // 2. Fetching secret shares from IPFS
+        // 2. Fetching secret shares (as hex strings) from IPFS
         const sharesAsHex = await Promise.all(
-            input.sharesCids.map(cid => getFromIpfs({ cid }))
+            input.sharesCids.slice(0, 3).map(cid => getFromIpfs({ cid }))
         );
+        // Convert hex strings back to Buffers
         const sharesAsBuffers = sharesAsHex.map(s => Buffer.from(s, 'hex'));
 
-        // 3. Reconstructing secret from shares
-        const reconstructedSecretBuffer = sss.combine(sharesAsBuffers.slice(0, 3));
+        // 3. Reconstructing secret from share Buffers
+        const reconstructedSecretBuffer = sss.combine(sharesAsBuffers);
         const reconstructedEncryptedPassword = reconstructedSecretBuffer.toString('utf8');
 
         // 4. Decrypting with AES-256
