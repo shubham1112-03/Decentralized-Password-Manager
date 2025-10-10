@@ -74,15 +74,47 @@ This document contains the generated content for each slide based on the provide
     *   **Runtime:** Node.js
 
 *   **Working Mechanism (Flowchart):**
-    **Adding a Credential:**
-    1.  User enters service password in the client.
-    2.  Client sends the password and service details to the `addCredentialFlow` Genkit flow.
-    3.  Flow derives the AES key from the user's master password using Argon2.
-    4.  Flow encrypts the service password with AES-256.
-    5.  The resulting ciphertext is split into 5 "shares" with a threshold of 3 using Shamir's Secret Sharing.
-    6.  Each of the 5 shares is uploaded to IPFS via Pinata, returning 5 unique CIDs (Content Identifiers).
-    7.  The service name, username, and the 5 CIDs are stored as a document in Firestore. The encrypted data is **not** stored in Firestore.
-    8.  The client is notified of success.
+
+    **Flowchart 1: Adding a New Credential**
+
+    1.  **Start (User Action):** User clicks "Add New Password" in the client UI.
+    2.  **Input Form:** User fills in Service Name, Username, and Password, then clicks "Save to Vault".
+    3.  **Client-Side Call:** The client calls the `addCredentialFlow` Genkit flow, sending the raw master password and the new credential details.
+    4.  **Genkit Flow (Server-Side Begins):**
+        *   **Step 4a (Key Derivation):** The flow derives a secure 256-bit encryption key from the raw master password using `scrypt` (a robust key derivation function).
+        *   **Step 4b (Encryption):** The new service password is encrypted using the derived key with **AES-256-GCM**. This produces an `encrypted_password` string (containing ciphertext, IV, and auth tag).
+        *   **Step 4c (Secret Splitting):** The `encrypted_password` is treated as a secret and is split into **5 "shares"** using **Shamir's Secret Sharing** with a threshold of **3**. Any 3 shares can reconstruct the secret, but 2 or fewer are useless.
+        *   **Step 4d (ZKP Simulation):** The flow simulates the creation of a Zero-Knowledge Proof, adding a realistic delay.
+        *   **Step 4e (IPFS Upload):** The 5 shares are uploaded in parallel to the **IPFS network** via the Pinata pinning service. This returns **5 unique IPFS CIDs** (Content Identifiers).
+    5.  **Genkit Flow Response:** The flow returns the `sharesCids` array and the simulated `zkProof` to the client.
+    6.  **Store Metadata (Client-Side):** The client takes the `sharesCids` and `zkProof` and creates a new document in the **Firestore database**. This document contains:
+        *   `user_id`
+        *   `service` name
+        *   `username`
+        *   The array of 5 `sharesCids`
+        *   The `zkProof`
+    7.  **UI Update:** The client updates the dashboard to show the new credential card.
+    8.  **End.**
+
+    ---
+
+    **Flowchart 2: Revealing a Credential**
+
+    1.  **Start (User Action):** User clicks the "Reveal" button on a credential card in the UI.
+    2.  **Master Password Check:** The client already has the raw master password from when the vault was unlocked.
+    3.  **Client-Side Call:** The client calls the `revealCredentialFlow` Genkit flow, sending:
+        *   The raw master password.
+        *   The `sharesCids` array from the credential's Firestore document.
+        *   The `zkProof` from the same document.
+    4.  **Genkit Flow (Server-Side Begins):**
+        *   **Step 4a (ZKP Verification - Simulated):** The flow checks the simulated proof to authorize the operation.
+        *   **Step 4b (IPFS Download):** The flow takes the first **3 CIDs** from the `sharesCids` array and fetches the corresponding secret shares from the **IPFS network** via a Pinata gateway.
+        *   **Step 4c (Reconstruction):** The 3 downloaded shares are combined using **Shamir's Secret Sharing** to perfectly reconstruct the original `encrypted_password` string.
+        *   **Step 4d (Key Derivation):** The flow re-derives the same 256-bit AES key from the user's master password using `scrypt`.
+        *   **Step 4e (Decryption):** The derived key is used to decrypt the reconstructed `encrypted_password` with **AES-256-GCM**, revealing the original plaintext password.
+    5.  **Genkit Flow Response:** The flow returns the `plaintextPassword` to the client.
+    6.  **UI Update:** The client displays the `plaintextPassword` in the credential card.
+    7.  **End.**
 
 ---
 
