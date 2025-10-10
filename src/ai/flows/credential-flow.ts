@@ -18,7 +18,7 @@ import { addToIpfs, getFromIpfs } from './ipfs-flow';
 // Helper to simulate async operations
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const addCredentialFlow = ai.defineFlow(
+export const addCredential = ai.defineFlow(
   {
     name: 'addCredentialFlow',
     inputSchema: AddCredentialInputSchema,
@@ -53,12 +53,7 @@ const addCredentialFlow = ai.defineFlow(
   }
 );
 
-export async function addCredential(input: AddCredentialInput): Promise<AddCredentialOutput> {
-    // The flow now returns a serializable object, so no conversion is needed here.
-    return addCredentialFlow(input);
-}
-
-const revealCredentialFlow = ai.defineFlow(
+export const revealCredential = ai.defineFlow(
     {
         name: 'revealCredentialFlow',
         inputSchema: RevealCredentialInputSchema,
@@ -89,7 +84,3 @@ const revealCredentialFlow = ai.defineFlow(
         return { plaintextPassword };
     }
 );
-
-export async function revealCredential(input: RevealCredentialInput): Promise<RevealCredentialOutput> {
-    return revealCredentialFlow(input);
-}
