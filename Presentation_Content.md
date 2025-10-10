@@ -81,7 +81,7 @@ This document contains the generated content for each slide based on the provide
     2.  **Input Form:** User fills in Service Name, Username, and Password, then clicks "Save to Vault".
     3.  **Client-Side Call:** The client calls the `addCredentialFlow` Genkit flow, sending the raw master password and the new credential details.
     4.  **Genkit Flow (Server-Side Begins):**
-        *   **Step 4a (Key Derivation):** The flow derives a secure 256-bit encryption key from the raw master password using `scrypt` (a robust key derivation function).
+        *   **Step 4a (Key Derivation):** The flow derives a secure 256-bit encryption key from the raw master password using `argon2` (a robust key derivation function).
         *   **Step 4b (Encryption):** The new service password is encrypted using the derived key with **AES-256-GCM**. This produces an `encrypted_password` string (containing ciphertext, IV, and auth tag).
         *   **Step 4c (Secret Splitting):** The `encrypted_password` is treated as a secret and is split into **5 "shares"** using **Shamir's Secret Sharing** with a threshold of **3**. Any 3 shares can reconstruct the secret, but 2 or fewer are useless.
         *   **Step 4d (ZKP Simulation):** The flow simulates the creation of a Zero-Knowledge Proof, adding a realistic delay.
@@ -110,7 +110,7 @@ This document contains the generated content for each slide based on the provide
         *   **Step 4a (ZKP Verification - Simulated):** The flow checks the simulated proof to authorize the operation.
         *   **Step 4b (IPFS Download):** The flow takes the first **3 CIDs** from the `sharesCids` array and fetches the corresponding secret shares from the **IPFS network** via a Pinata gateway.
         *   **Step 4c (Reconstruction):** The 3 downloaded shares are combined using **Shamir's Secret Sharing** to perfectly reconstruct the original `encrypted_password` string.
-        *   **Step 4d (Key Derivation):** The flow re-derives the same 256-bit AES key from the user's master password using `scrypt`.
+        *   **Step 4d (Key Derivation):** The flow re-derives the same 256-bit AES key from the user's master password using `argon2`.
         *   **Step 4e (Decryption):** The derived key is used to decrypt the reconstructed `encrypted_password` with **AES-256-GCM**, revealing the original plaintext password.
     5.  **Genkit Flow Response:** The flow returns the `plaintextPassword` to the client.
     6.  **UI Update:** The client displays the `plaintextPassword` in the credential card.
