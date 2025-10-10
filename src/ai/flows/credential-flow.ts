@@ -57,6 +57,7 @@ export async function addCredential(input: AddCredentialInput): Promise<AddCrede
     const flowResult = await addCredentialFlow(input);
     
     // Manually construct a new plain object to ensure serialization.
+    // This prevents the "Set objects are not supported" error in Next.js.
     const plainResult: AddCredentialOutput = {
         encryptedPassword: flowResult.encryptedPassword,
         sharesCids: [...flowResult.sharesCids],
