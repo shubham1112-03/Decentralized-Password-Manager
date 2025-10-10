@@ -1,21 +1,25 @@
-import { scrypt, createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import { promisify } from 'util';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import * as argon2 from 'argon2';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 const KEY_LENGTH = 32; // 256 bits
-const SALT = 'your-super-secret-salt-that-is-at-least-16-bytes'; // In a real app, this should be unique per user and stored with their data
-
-const scryptAsync = promisify(scrypt);
 
 /**
- * Derives a cryptographic key from a password using scrypt.
+ * Derives a cryptographic key from a password using Argon2.
  * This is a slow, memory-intensive function by design to protect against brute-force attacks.
  * @param password The user's master password.
  * @returns A promise that resolves to a 32-byte (256-bit) key.
  */
 export async function getKey(password: string): Promise<Buffer> {
-  return (await scryptAsync(password, SALT, KEY_LENGTH)) as Buffer;
+  // We use a static salt here for simplicity in this project.
+  // In a production system, you would generate a unique salt per user and store it with their profile.
+  const salt = Buffer.from('ciphersafe-static-salt-for-argon2');
+  return await argon2.hash(password, {
+    type: argon2.argon2id,
+    hashLength: KEY_LENGTH,
+    salt,
+  }).then(hash => Buffer.from(hash.split('$').pop()!, 'hex'));
 }
 
 /**
