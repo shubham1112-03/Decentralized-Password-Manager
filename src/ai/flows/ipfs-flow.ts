@@ -1,21 +1,13 @@
 'use server';
 /**
  * @fileOverview A server-only flow for interacting with IPFS via Pinata.
+ * This file is currently configured to use a DUMMY implementation for testing.
  */
 import { ai } from '@/ai/genkit';
 import { AddToIpfsInputSchema, AddToIpfsOutputSchema, GetFromIpfsInputSchema, GetFromIpfsOutputSchema } from './ipfs-types';
 import type { AddToIpfsInput, GetFromIpfsInput } from './ipfs-types';
-import pinataSDK from "@pinata/sdk";
-import { Readable } from "stream";
 
-function getPinataClient() {
-    const jwt = process.env.PINATA_JWT;
-    
-    if (!jwt) {
-        throw new Error('Pinata is not configured. Please add PINATA_JWT to your .env file.');
-    }
-    return new pinataSDK({ pinataJwt: jwt });
-}
+const DUMMY_PREFIX = 'dummy-ipfs:';
 
 const addToIpfsFlow = ai.defineFlow(
   {
@@ -24,30 +16,13 @@ const addToIpfsFlow = ai.defineFlow(
     outputSchema: AddToIpfsOutputSchema,
   },
   async ({ content }) => {
+    // DUMMY IMPLEMENTATION: Encode content into a fake CID
     try {
-      const pinata = getPinataClient();
-      const stream = Readable.from(content);
-      
-      // The Pinata SDK v2 requires the stream to have a path property.
-      // We can satisfy this by adding a path to the stream object.
-      (stream as any).path = `CipherSafe-Share-${Date.now()}`;
-
-      const options = {
-        pinataMetadata: {
-          name: `CipherSafe-Share-${Date.now()}`,
-        },
-      };
-
-      const result = await pinata.pinFileToIPFS(stream, options);
-      
-      if (!result.IpfsHash) {
-        throw new Error('Pinata did not return a CID (IpfsHash).');
-      }
-      
-      return result.IpfsHash;
+      const encodedContent = Buffer.from(content).toString('base64');
+      return `${DUMMY_PREFIX}${encodedContent}`;
     } catch (error: any) {
-      console.error("Error uploading to Pinata:", error);
-      throw new Error('Could not upload data to the IPFS network via Pinata.');
+      console.error("Error in dummy addToIpfs:", error);
+      throw new Error('Could not create dummy IPFS data.');
     }
   }
 );
@@ -56,7 +31,6 @@ export async function addToIpfs(input: AddToIpfsInput): Promise<string> {
     return await addToIpfsFlow(input);
 }
 
-
 const getFromIpfsFlow = ai.defineFlow(
   {
     name: 'getFromIpfsFlow',
@@ -64,19 +38,17 @@ const getFromIpfsFlow = ai.defineFlow(
     outputSchema: GetFromIpfsOutputSchema,
   },
   async ({ cid }) => {
+    // DUMMY IMPLEMENTATION: Decode content from the fake CID
     try {
-        const gatewayUrl = `https://amethyst.pinnie.cloud/ipfs/${cid}`;
-        const response = await fetch(gatewayUrl);
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch from Pinata gateway. Status: ${response.status}`);
-        }
-        
-        const content = await response.text();
-        return content;
+      if (!cid.startsWith(DUMMY_PREFIX)) {
+        throw new Error('Invalid dummy CID format.');
+      }
+      const encodedContent = cid.substring(DUMMY_PREFIX.length);
+      const decodedContent = Buffer.from(encodedContent, 'base64').toString('utf8');
+      return decodedContent;
     } catch (error: any) {
-        console.error("Error fetching from Pinata:", error);
-        throw new Error('Could not retrieve data from the IPFS network via Pinata.');
+        console.error("Error in dummy getFromIpfs:", error);
+        throw new Error('Could not retrieve dummy IPFS data.');
     }
   }
 );
