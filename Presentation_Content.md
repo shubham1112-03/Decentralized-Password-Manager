@@ -58,6 +58,45 @@ This document contains the generated content for each slide based on the provide
 
 ---
 
+### Slide 5: Methodology & Risk Management
+
+*   **Development Methodology:**
+    *   **Agile (Iterative) Approach:** The project was developed using a 12-week iterative model, with each week representing a sprint focused on a specific feature set (e.g., auth, crypto, IPFS integration).
+    *   **Modular Design:** The system architecture intentionally separates concerns into three distinct layers (Client, Orchestration, Backend Services), allowing for independent development, testing, and maintenance.
+    *   **Prototyping:** Early sprints were dedicated to creating functional prototypes of high-risk components, such as the cryptographic and IPFS integration layers, to validate their feasibility before full implementation.
+
+*   **Risk Management:**
+    *   **Technological Risk:**
+        *   *Risk:* The complexity of integrating multiple advanced technologies (Genkit, IPFS, Shamir's Sharing) could lead to unforeseen issues.
+        *   *Mitigation:* Dedicated early sprints to research and prototype these components. Implemented a "dummy" IPFS service to de-couple frontend and backend development, allowing parallel workstreams and focused testing.
+    *   **Security Risk:**
+        *   *Risk:* A flaw in the cryptographic implementation could compromise the entire system's security promise.
+        *   *Mitigation:* Adhered strictly to well-vetted, standard cryptographic libraries (Node.js `crypto` for AES-256-GCM, `argon2` for key derivation). Avoided implementing custom cryptographic algorithms.
+    *   **Data Availability Risk:**
+        *   *Risk:* Data stored on IPFS could become unavailable if not pinned by any node.
+        *   *Mitigation:* Used a professional pinning service (Pinata) to guarantee data persistence. The architecture allows for adding more pinning services in the future for redundancy.
+
+---
+
+### Slide 6: Quality & Cost Management
+
+*   **Quality Management:**
+    *   **Code Quality:** Maintained high code quality through the use of TypeScript for static type checking, which catches errors during development. Code was organized into logical, reusable components and modules.
+    *   **UI/UX Quality:** Utilized a professional component library (Shadcn/UI) to ensure a consistent, modern, and responsive user interface across all devices.
+    *   **Testing:** Conducted iterative testing throughout the development lifecycle. This included:
+        *   **Unit Testing (Conceptual):** Individual Genkit flows were developed and tested in isolation.
+        *   **Integration Testing:** The end-to-end flows for adding and revealing credentials were tested to ensure all parts (UI, crypto, IPFS, DB) worked together.
+        *   **User Acceptance Testing (UAT):** Continuously used the application to identify bugs and usability issues from an end-user perspective.
+
+*   **Cost Management:**
+    *   **Technology Choices:** The core technologies were selected to minimize costs, especially for a prototype or small-scale deployment.
+        *   **Firebase:** Offers a generous free tier for Authentication and Firestore, sufficient for thousands of users.
+        *   **Pinata:** Provides a free tier that includes enough storage and bandwidth for initial development and testing.
+        *   **Next.js/Genkit:** Open-source and free to use.
+    *   **Infrastructure:** Deployed on serverless platforms (like Firebase App Hosting) to eliminate the cost of maintaining dedicated servers. The "pay-as-you-go" model ensures that costs scale with usage, making it highly economical for a new project.
+
+---
+
 ### Slide 7: System Design & Implementation
 
 *   **Tools & Technologies Used:**
