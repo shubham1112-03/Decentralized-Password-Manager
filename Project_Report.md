@@ -72,3 +72,111 @@ Designing such a system presents several formidable challenges that exist in a d
 3.  **Performance and Latency:** Decentralization is not free. Every operation to add or retrieve a password involves a multi-step cryptographic pipeline (key derivation, encryption, secret sharing) followed by multiple network requests to a distributed system (IPFS). Each of these steps introduces latency. A key design challenge is to ensure the end-to-end time for these core user actions remains within a few seconds to prevent user frustration. This requires careful selection of algorithms, efficient implementation, and potentially leveraging optimistic UI updates.
 
 4.  **Integration Complexity:** The proposed method involves integrating disparate, highly specialized technologies: a modern web framework (Next.js/React), a serverless AI backend (Genkit), cloud services for authentication and metadata (Firebase), advanced cryptographic libraries (Argon2, SSS), and a distributed file system (IPFS). The challenge lies in creating a robust and secure data flow between these components, ensuring that data is correctly formatted, transmitted, and processed at each stage without introducing security vulnerabilities at the integration points.
+
+## Chapter 7: System Architecture
+
+This chapter details the architectural design of CipherSafe. It outlines the distinct components of the system and illustrates the data flow for the core cryptographic operations, highlighting the novel combination of technologies that enables its decentralized security model.
+
+The CipherSafe architecture is a hybrid model designed to achieve the security benefits of decentralization while maintaining the usability of a modern web application. It is composed of five key components:
+
+1.  **Frontend Client (Next.js & React)**: A responsive web application that serves as the user's primary interface. It handles user input, renders the vault, and communicates with the backend services. All cryptographic operations are initiated from the client, but the heavy lifting is offloaded to the Genkit backend.
+
+2.  **Backend Logic (Genkit AI Flows)**: A serverless backend that orchestrates the complex cryptographic and network-bound operations. This includes deriving keys, encrypting/decrypting data, generating and combining Shamir's shares, and interacting with the IPFS network. Abstracting this logic into Genkit flows keeps the frontend client lightweight.
+
+3.  **Authentication Service (Firebase Authentication)**: Manages user registration, login, and session management. This provides a traditional, user-friendly authentication experience without granting the system access to any sensitive credential data.
+
+4.  **Metadata Database (Firestore)**: A NoSQL database that acts as an "address book" for user credentials. It stores only non-sensitive metadata: the service name, username, and a list of IPFS Content Identifiers (CIDs) that point to the encrypted credential shares. **Crucially, no encrypted data or secret shares are ever stored in this database.**
+
+5.  **Decentralized Storage (IPFS via Pinata)**: The InterPlanetary File System is used as the storage layer for the encrypted and fragmented credential shares. Pinata is used as a pinning service to ensure the data remains available on the IPFS network. This is the core of the system's decentralization, as the sensitive data is distributed across a peer-to-peer network rather than being stored on a single server.
+
+---
+
+### Figure 1: Add Credential Data Flow
+
+This diagram illustrates the step-by-step process when a user adds a new password to their vault. This flow highlights the **novelty of combining encryption, fragmentation, and decentralized storage in a single, automated pipeline**.
+
+```
+[User's Browser (React UI)]
+       |
+       | 1. User submits (Service, Username, Password, Master Password)
+       v
+[Genkit Backend (addCredential Flow)]
+       |
+       | 2. Derives 256-bit encryption key from Master Password using Argon2.
+       |    - `key = Argon2(masterPassword, salt)`
+       |
+       | 3. Encrypts the new password with the derived key using AES-256-GCM.
+       |    - `encrypted_pw = AES256(password, key)`
+       |
+       | 4. Splits the `encrypted_pw` into 5 unique "shares" using Shamir's Secret Sharing (threshold: 3).
+       |    - `[s1, s2, s3, s4, s5] = Shamir.split(encrypted_pw)`
+       |
+       | 5. (Simulated) Generates a Zero-Knowledge Proof of master password ownership.
+       |    - `zkp = "simulated-zkp-..."`
+       |
+       +-------------------------------------------------+
+       |                                                 |
+       v                                                 v
+[IPFS Network (via Pinata)]                       [Firestore Database]
+       |                                                 |
+       | 6. Pins each share (s1-s5) to IPFS              |
+       |    individually. Each pin returns a unique CID. |
+       |    - `cid1 = Pinata.pin(s1)`                     |
+       |    - `cid2 = Pinata.pin(s2)`                     |
+       |    - ...etc.                                     |
+       |                                                 |
+       |                                                 | 7. Creates a new document in the
+       |                                                 |    'credentials' collection containing
+       |                                                 |    only metadata and pointers:
+       |                                                 |    - `service: "Google"`
+       |                                                 |    - `username: "user@example.com"`
+       |                                                 |    - `zkProof: zkp`
+       |                                                 |    - `sharesCids: [cid1, cid2, ...]`
+       v                                                 v
+[User's Browser (React UI)] <-----------------------+
+       |
+       | 8. Flow completes. UI displays a success message.
+       v
+(End)
+```
+
+---
+
+### Figure 2: Reveal Credential Data Flow
+
+This diagram illustrates the process when a user requests to view a stored password. This flow demonstrates how the decentralized shares are retrieved and recombined on-the-fly to securely decrypt the secret.
+
+```
+[User's Browser (React UI)]
+       |
+       | 1. User clicks "Reveal" on a credential and provides Master Password.
+       v
+[Genkit Backend (revealCredential Flow)]
+       |
+       | 2. Receives Master Password, `sharesCids`, and `zkProof` from Firestore document.
+       |
+       | 3. (Simulated) Verifies the Zero-Knowledge Proof.
+       |
+       | 4. Fetches the required threshold (3 of 5) of encrypted shares from the IPFS gateway using their CIDs.
+       |    - `share1_hex = Fetch("https://gateway.pinata.cloud/ipfs/[cid1]")`
+       |    - `share2_hex = Fetch("https://gateway.pinata.cloud/ipfs/[cid2]")`
+       |    - `share3_hex = Fetch("https://gateway.pinata.cloud/ipfs/[cid3]")`
+       |
+       | 5. Reconstructs the original `encrypted_pw` by combining the shares.
+       |    - `encrypted_pw = Shamir.combine([share1, share2, share3])`
+       |
+       | 6. Derives the same 256-bit encryption key from the user-provided Master Password using Argon2.
+       |    - `key = Argon2(masterPassword, salt)`
+       |
+       | 7. Decrypts the reconstructed `encrypted_pw` with the derived key.
+       |    - `decrypted_pw = AES256_Decrypt(encrypted_pw, key)`
+       |
+       v
+[User's Browser (React UI)]
+       |
+       | 8. Returns the `decrypted_pw` to the client.
+       |
+       | 9. UI displays the plaintext password to the user.
+       v
+(End)
+```
