@@ -26,11 +26,13 @@ The work undertaken in the CipherSafe project should be of significant interest 
 
 3.  **Privacy Advocates and Technologists**: Those who advocate for user data ownership and digital sovereignty should care deeply about this work. The CipherSafe model empowers the user with ultimate control over their own data. By design, not even the operators of the CipherSafe service can access or decrypt user information. This aligns with a broader movement toward building a more private and user-centric web, where individuals are not merely products whose data is to be monetized or protected at the whim of a corporation, but are true owners of their digital lives.
 
-## Chapter 3: Problem Statement and Approach
-
-This chapter details the specific problem this project addresses, our proposed solution, and its novelty. It compares our approach to existing work, presents a hypothesis for its effectiveness, outlines performance analysis scenarios, and summarizes the key results of our implementation.
+## Chapter 3: Problem Definition
 
 The fundamental problem with modern password management is the systemic risk posed by **centralized data aggregation**. Even with client-side encryption, leading password managers store millions of encrypted user vaults in a single cloud infrastructure. This makes them a prime target for sophisticated attacks. A single breach of this central infrastructure, as demonstrated in real-world security incidents, can lead to the exfiltration of entire user vault datasets. While these vaults are encrypted, they can be subjected to indefinite offline brute-force attacks, where an attacker can use massive computational resources to crack master passwords over time. The significance lies in the "all or nothing" nature of this model; a single security failure at the provider level compromises the encrypted data of every user.
+
+## Chapter 4: Problem Statement and Approach
+
+This chapter details the specific problem this project addresses, our proposed solution, and its novelty. It compares our approach to existing work, presents a hypothesis for its effectiveness, outlines performance analysis scenarios, and summarizes the key results of our implementation.
 
 Our approach is to dismantle this central point of failure. The **hypothesis** is that by cryptographically splitting the encrypted vault and distributing the fragments across a decentralized network, we can achieve a higher degree of security and resilience than centralized models, without sacrificing user experience. We achieve this through a multi-stage cryptographic pipeline: (1) deriving a strong encryption key from a master password using Argon2; (2) encrypting the credential with AES-256-GCM; (3) splitting the resulting ciphertext into multiple shares using Shamir's Secret Sharing (SSS); and (4) pinning these individual, useless-on-their-own shares to the InterPlanetary File System (IPFS) network. A central Firebase server is used only as a "phone book" to store pointers (IPFS CIDs) to these shares, not the shares themselves. This hybrid model keeps the convenience of a managed login system while radically decentralizing the storage of the actual sensitive data.
 
@@ -43,7 +45,7 @@ To evaluate the system, performance analysis would focus on the user-perceived l
 
 In summary, the important result of this project is a functional proof-of-concept that successfully validates our hypothesis. The system demonstrates that it is feasible to build a password manager where the encrypted user data is fragmented and distributed across a decentralized network. Our implementation confirms that the latency for core operations—encrypting, splitting, and distributing to IPFS (averaging 1.5-2.5 seconds), and retrieving, combining, and decrypting (averaging 1-2 seconds)—is within an acceptable range for a positive user experience. This proves that the architectural trade-off of slightly increased latency for a monumental gain in security and resilience is not only viable but also a practical and superior model for future security applications.
 
-## Chapter 4: Identified Research Gaps and Contributions
+## Chapter 5: Identified Research Gaps and Contributions
 
 This chapter outlines the specific gaps in existing research and commercial products that CipherSafe aims to address. It highlights the project's novel contributions to the field of secure credential management.
 
@@ -55,7 +57,7 @@ The development of CipherSafe was motivated by several identifiable gaps in the 
 
 3.  **Practical Application of Secret Sharing Schemes:** Cryptographic techniques like Shamir’s Secret Sharing (SSS) are well-established in theory but are infrequently implemented in consumer-facing security applications. There is a gap between the theoretical power of these algorithms and their real-world application. This project contributes a tangible, open-source implementation that combines SSS with a modern decentralized storage network (IPFS), serving as a practical blueprint for how these advanced cryptographic primitives can be used to solve everyday security problems. It moves SSS from a purely academic concept to a demonstrable feature in a usable product.
 
-## Chapter 5: Proposed Method and Algorithm
+## Chapter 6: Proposed Method/Algorithm
 
 This chapter will restate the core problem definition and then explore the primary challenges involved in designing a secure, usable, and performant decentralized password manager. This lays the groundwork for understanding the architectural decisions made in the CipherSafe project.
 
