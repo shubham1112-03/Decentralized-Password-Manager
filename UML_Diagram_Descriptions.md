@@ -6,7 +6,7 @@ This document provides detailed descriptions for various UML diagrams that model
 
 ### 1. Class Diagram
 
-The Class Diagram models the static structure of the system, including its classes, their attributes, methods, and the relationships between them.
+**Explanation:** The Class Diagram models the static structure of the system. It shows the key classes (like data entities, components, and services), their attributes (data fields), their methods (functions), and the relationships between them (e.g., a User has many Credentials).
 
 - **User (Firebase Auth)**
   - **Description:** Represents an authenticated user account managed by Firebase.
@@ -78,7 +78,7 @@ The Class Diagram models the static structure of the system, including its class
 
 ### 2. Use Case Diagram
 
-The Use Case Diagram models the interactions between the primary actor (the User) and the CipherSafe system.
+**Explanation:** The Use Case Diagram models the high-level interactions between an actor (the "User") and the system. It describes *what* the system does from the user's perspective, without getting into the implementation details.
 
 - **Actor:** User
 
@@ -108,7 +108,7 @@ The Use Case Diagram models the interactions between the primary actor (the User
 
 ### 3. Sequence Diagram
 
-Sequence Diagrams model the interactions between objects in a time-ordered sequence.
+**Explanation:** Sequence Diagrams model the interactions between objects in a time-ordered sequence. They show exactly how different parts of the system collaborate to carry out a function, detailing the messages passed between them.
 
 #### Sequence: Add New Credential
 
@@ -132,7 +132,7 @@ Sequence Diagrams model the interactions between objects in a time-ordered seque
 
 ### 4. Activity Diagram
 
-The Activity Diagram models the flow of control from one activity to another.
+**Explanation:** The Activity Diagram models the flow of control from one activity to another. It's useful for representing the business logic or operational workflow of a system, including decisions and concurrent paths.
 
 #### Activity: User Authentication and Vault Access
 
@@ -154,7 +154,7 @@ The Activity Diagram models the flow of control from one activity to another.
 
 ### 5. Component Diagram
 
-The Component Diagram models the organization and dependencies among the software components.
+**Explanation:** The Component Diagram models the organization and dependencies among the software components. It provides a high-level, physical view of the system, showing how different parts (like the UI, backend, and external services) are wired together.
 
 - **CipherSafe UI (React/Next.js)**
   - **Provided Interface:** Web Interface for password management.
@@ -189,7 +189,7 @@ The Component Diagram models the organization and dependencies among the softwar
 
 ### 6. Deployment Diagram
 
-The Deployment Diagram models the physical deployment of artifacts on nodes.
+**Explanation:** The Deployment Diagram models the physical deployment of the application's artifacts (like code files and services) onto hardware nodes (like a user's browser or a cloud server). It shows where the software physically runs.
 
 - **Node: User's Device (Browser)**
   - **Artifact:** `CipherSafe Next.js/React App` (JavaScript, HTML, CSS)
