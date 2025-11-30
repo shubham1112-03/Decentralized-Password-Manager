@@ -40,7 +40,7 @@ These are the requirements for developers who want to modify or contribute to th
 
 These are the key technologies installed via the package manager that form the backbone of the application. The full list is available in the `package.json` file.
 
-- **Next.js**: `v15.x` - The React framework for building the application.
+- **Next.js**: `v14.x` or later - The React framework for building the application.
   - **Why selected**: It was chosen for its robust full-stack capabilities, including server-side rendering (SSR), API routes, and an excellent developer experience, which is ideal for building a modern, performant web application.
 
 - **React**: `v18.x` - The core UI library.
@@ -100,4 +100,3 @@ These cloud services are essential for the application to function correctly.
 
 - **IPFS Pinning Service**:
   - **Pinata**: An account with `pinata.cloud` and a corresponding JWT are required to pin and persist the credential shares on the IPFS network.
-

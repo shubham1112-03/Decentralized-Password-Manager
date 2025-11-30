@@ -79,6 +79,8 @@ The Class Diagram models the static structure of the system, providing a bluepri
 
 ### 2. Use Case Diagram
 
+
+---
 **Explanation:**
 The Use Case Diagram models the high-level functional requirements of the system from the perspective of an external actor—in this case, the "User." It describes *what* the system does without detailing *how* it does it. This diagram is invaluable for defining the scope of the project and ensuring all user-facing functionality is accounted for.
 
@@ -95,8 +97,6 @@ The Use Case Diagram models the high-level functional requirements of the system
   8.  **Delete Credential:** The user permanently removes a credential record. This action deletes the metadata from Firestore (making the IPFS shares undiscoverable).
   9.  **Lock Vault:** The user manually locks the vault, which clears the session's raw master password. This forces re-entry of the master password for any subsequent sensitive operations.
   10. **Log Out:** The user signs out completely, terminating their Firebase Authentication session and locking the vault.
-
----
 
 ### 3. Sequence Diagram
 
