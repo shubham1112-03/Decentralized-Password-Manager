@@ -30,8 +30,6 @@ The work undertaken in the CipherSafe project should be of significant interest 
 
 ## Chapter 3: Problem Definition
 
-This chapter provides a formal definition of the problem that CipherSafe addresses. It concisely articulates the core vulnerability of existing password management systems, which serves as the foundational motivation for this project's decentralized approach.
-
 The fundamental problem with modern password management is the systemic risk posed by **centralized data aggregation**. Even with client-side encryption, leading password managers store millions of encrypted user vaults in a single cloud infrastructure. This makes them a prime target for sophisticated attacks. A single breach of this central infrastructure, as demonstrated in real-world security incidents, can lead to the exfiltration of entire user vault datasets. While these vaults are encrypted, they can be subjected to indefinite offline brute-force attacks, where an attacker can use massive computational resources to crack master passwords over time. The significance lies in the "all or nothing" nature of this model; a single security failure at the provider level compromises the encrypted data of every user.
 
 ## Chapter 4: Problem Statement and Approach
@@ -187,19 +185,30 @@ This diagram illustrates the process when a user requests to view a stored passw
 
 ## Chapter 8: Results and Analysis
 
-This chapter presents and analyzes the results of the CipherSafe implementation. It focuses on evaluating the system's performance against its primary goal: to enhance security through decentralization without critically compromising user experience. The analysis covers the key performance metrics related to latency and discusses their implications for the system's overall viability.
+This chapter presents and analyzes the tangible outcomes of the CipherSafe project. It evaluates the system's performance, user experience, and security architecture against the initial hypothesis: that decentralizing vault storage can provide superior security without critically compromising usability. The polished user interface, as seen in the application's login screen, serves as the entry point for this analysis, representing the functional result of integrating all backend and frontend components.
 
-The primary hypothesis of this project was that decentralizing password vault storage using cryptographic splitting and IPFS could provide superior security to centralized models while maintaining acceptable performance. The results from our functional proof-of-concept validate this hypothesis. The analysis is broken into two key areas: security architecture resilience and user-perceived performance latency.
+The primary hypothesis was validated: the proof-of-concept demonstrates that it is feasible to build a secure, usable password manager using a decentralized storage model. The analysis of the results is broken down into two key areas: the resilience of the security architecture and the user-perceived performance latency.
 
-From a security standpoint, the architecture successfully eliminates the single point of failure. An attacker would need to execute a multi-stage attack to compromise even a single user's data: first, they would need to breach the Firestore database to acquire the list of CIDs, and second, they would need to successfully retrieve the corresponding data fragments from the distributed IPFS network. Even if successful, these fragments are cryptographically useless without the user's master password. This distributed and fragmented model provides a monumental increase in resilience against the mass data exfiltration that plagues centralized systems. The attack surface is no longer a single server but a distributed set of systems, dramatically increasing the cost and complexity for an attacker.
+### Security Architecture Resilience
 
-From a performance standpoint, the additional cryptographic and network steps introduce a measurable but acceptable latency. The two critical user-facing operations were measured:
+The foremost result of the project is the successful implementation of an architecture that is inherently resistant to mass data exfiltration. The system, as experienced from the login screen onwards, fully abstracts a complex security pipeline. From a security analysis perspective, this architecture successfully eliminates the single point of failure that plagues centralized password managers. An attacker cannot simply breach one server to access a "honeypot" of encrypted user vaults. To compromise even a single credential, an attacker would need to execute a sophisticated, multi-stage attack:
+1.  Breach the Firestore database to acquire the list of IPFS Content Identifiers (CIDs) for a specific credential.
+2.  Successfully retrieve the corresponding data fragments from various nodes across the distributed IPFS network.
+3.  Obtain the user's master password to derive the correct decryption key.
 
-1.  **`addCredential` Latency**: The end-to-end time from a user saving a new credential to the confirmation of its storage averaged between **1.5 and 2.5 seconds**. This period includes key derivation (Argon2), encryption (AES-256), secret splitting (Shamir's), and multiple parallel uploads to the IPFS network. While noticeably longer than the near-instantaneous save time of a traditional web form, user feedback indicated this was a reasonable "cost" for a high-security operation. The latency is dominated by the network I/O of pinning multiple files to IPFS.
+Even if an attacker completes the first two steps, the retrieved shares are cryptographically useless on their own. This fragmented and distributed model provides a monumental increase in resilience. The attack surface is no longer a single, high-value server but a distributed set of systems, dramatically increasing the cost, complexity, and likelihood of detection for any potential attacker.
 
-2.  **`revealCredential` Latency**: The time from a user requesting to view a password to its display on screen averaged between **1.0 and 2.0 seconds**. This includes fetching the required threshold of shares from an IPFS gateway, cryptographic recombination, and decryption. The dominant factor here was again network latency, specifically the time-to-first-byte from the IPFS gateway for multiple concurrent requests.
+### User-Perceived Performance and Latency
 
-In conclusion, the results demonstrate a clear and successful trade-off. The system sacrifices a small amount of speed (1-2 seconds per operation) for a fundamental enhancement in security architecture. The latency figures are well within the bounds of a positive user experience for a security-critical application, where users are often more patient. The analysis confirms that a hybrid, decentralized approach is not only feasible but is a practical and superior model for building the next generation of secure applications.
+While the security model is robust, its practicality hinges on performance. A system that is too slow will not be used, regardless of its security guarantees. The results of the performance analysis, measured from the point of user interaction in the UI, confirm that the latency introduced by the cryptographic and network steps is measurable but falls within an acceptable range for a positive user experience.
+
+The two critical, user-facing operations were measured end-to-end:
+
+1.  **`addCredential` Latency**: The total time from a user submitting the "Add New Password" form to the confirmation of its successful storage averaged between **1.5 and 2.5 seconds**. This period encompasses the computationally intensive Argon2 key derivation, AES-256 encryption, Shamir's Secret Sharing fragmentation, and, most significantly, multiple parallel network requests to pin the shares to the IPFS network via Pinata. While this is longer than the near-instantaneous save time of a simple web form, qualitative feedback suggests this is a reasonable and expected duration for a high-security operation. The latency is dominated by the network I/O of the pinning service.
+
+2.  **`revealCredential` Latency**: The time from a user clicking the "Reveal" button to the plaintext password being displayed on screen averaged between **1.0 and 2.0 seconds**. This process includes fetching the required threshold of shares from a public IPFS gateway, cryptographic recombination of the shares, re-derivation of the Argon2 key, and finally, AES-256 decryption. Again, the dominant factor was network latency, specifically the "time-to-first-byte" from the IPFS gateway for multiple concurrent requests.
+
+In conclusion, the results demonstrate a clear and successful architectural trade-off. The system sacrifices a small and predictable amount of speed (on the order of 1-2 seconds per core operation) for a fundamental and significant enhancement in its security posture. These latency figures are well within the bounds of a good user experience for a security-critical application, where users are often more patient and value safety over millisecond-level performance. The analysis confirms that a hybrid, decentralized approach is not only feasible but is a practical and superior model for building the next generation of secure applications.
 
 ## Chapter 9: Future Work
 
